@@ -1,194 +1,209 @@
 "use client";
 
-/**
- * CSV Mapper - Main Orchestrator Component
- * Manages the entire mapping workflow across 3 tabs
- */
-
-import { useState } from "react";
-import { MappingTemplate, MappingRow, CSVUpload } from "@/types/mapping";
-import { getDefaultConfigValues } from "@/lib/config-variables";
-import { validateMappingTemplate } from "@/lib/mapping-validation";
-import { CSVUploadComponent } from "./csv-upload";
-import { MappingTable } from "./mapping-table";
-import { ConfigVariablesEditor } from "./config-variables-editor";
+import * as React from "react";
+import { IconSave, IconAlertCircle } from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs";
+import {
+  Alert,
+  AlertDescription,
+  AlertTitle,
+} from "@/components/ui/alert";
+import { CSVUploadComponent } from "./csv-upload";
+import { MappingTable } from "./mapping-table";
+import { ConfigVariablesEditor } from "./config-variables-editor";
+import { MappingTemplate, MappingRow, CSVUpload } from "@/types/mapping";
+import { validateMappingTemplate } from "@/lib/mapping-validation";
+import { getDefaultConfigValues } from "@/lib/config-variables";
+import { toast } from "sonner";
 
 interface CSVMapperProps {
-  mode: "builder" | "viewer";
+  mode: "builder" | "selector";
   initialTemplate?: MappingTemplate;
   onSave?: (template: MappingTemplate) => void;
+  onCancel?: () => void;
 }
 
-export function CSVMapper({ mode, initialTemplate, onSave }: CSVMapperProps) {
-  const [activeTab, setActiveTab] = useState<"upload" | "mapping" | "config">(
-    "upload"
+export function CSVMapper({
+  mode,
+  initialTemplate,
+  onSave,
+  onCancel,
+}: CSVMapperProps) {
+  const [csvData, setCsvData] = React.useState<CSVUpload | undefined>(
+    undefined
   );
-  const [csvData, setCsvData] = useState<CSVUpload | null>(
-    initialTemplate?.csvUpload || null
-  );
-  const [templateName, setTemplateName] = useState(
+  const [templateName, setTemplateName] = React.useState(
     initialTemplate?.name || ""
   );
-  const [templateDescription, setTemplateDescription] = useState(
+  const [templateDescription, setTemplateDescription] = React.useState(
     initialTemplate?.description || ""
   );
-  const [mappings, setMappings] = useState<MappingRow[]>(
+  const [mappings, setMappings] = React.useState<MappingRow[]>(
     initialTemplate?.mappings || []
   );
-  const [configValues, setConfigValues] = useState<Record<string, any>>(
-    initialTemplate?.configVariables || getDefaultConfigValues()
+  const [configValues, setConfigValues] = React.useState<Record<string, any>>(
+    initialTemplate?.configVariables.reduce(
+      (acc, cv) => ({ ...acc, [cv.key]: cv.value }),
+      {}
+    ) || getDefaultConfigValues()
   );
+  const [activeTab, setActiveTab] = React.useState("upload");
 
-  const handleCSVUpload = (data: CSVUpload) => {
+  const handleCsvUpload = (data: CSVUpload) => {
     setCsvData(data);
-
-    // Create initial mappings for each column
-    const initialMappings: MappingRow[] = data.columns.map((col, idx) => ({
-      id: `mapping-${idx}`,
-      sourceType: "csv",
-      sourceColumn: col,
-      ontologyEntity: "",
-      ontologyProperty: "",
-      dataType: "string",
-      status: "unmapped",
-    }));
-
-    setMappings(initialMappings);
     setActiveTab("mapping");
   };
 
   const handleSave = () => {
     const template: MappingTemplate = {
+      id: initialTemplate?.id || `template-${Date.now()}`,
       name: templateName,
       description: templateDescription,
+      createdAt: initialTemplate?.createdAt || new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
       mappings,
-      configVariables: configValues,
-      csvUpload: csvData || undefined,
+      configVariables: Object.entries(configValues).map(([key, value]) => ({
+        key,
+        displayName: key,
+        value,
+        dataType: typeof value === "boolean" ? "boolean" : "number",
+      })),
+      userId: "current-user", // TODO: Get from auth context
+      isActive: true,
     };
 
     const validation = validateMappingTemplate(template);
 
-    if (!validation.valid) {
-      alert(`Validation errors:\n${validation.errors.join("\n")}`);
+    if (!validation.isValid) {
+      toast.error("Validation failed", {
+        description: validation.errors[0],
+      });
       return;
     }
 
-    console.log("Saving template:", template);
+    if (validation.warnings.length > 0) {
+      console.warn("Validation warnings:", validation.warnings);
+    }
+
     onSave?.(template);
+    toast.success("Map template saved successfully");
   };
+
+  const canSave = templateName.trim() !== "" && mappings.length > 0;
+
+  if (mode === "selector") {
+    // TODO: Implement selector mode (list of existing templates)
+    return <div>Selector mode - coming soon</div>;
+  }
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="space-y-4">
-        <div>
-          <Label htmlFor="template-name">Template Name</Label>
-          <Input
-            id="template-name"
-            value={templateName}
-            onChange={(e) => setTemplateName(e.target.value)}
-            placeholder="Enter template name..."
-            className="mt-1"
-          />
-        </div>
-        <div>
-          <Label htmlFor="template-description">Description (optional)</Label>
-          <Textarea
-            id="template-description"
-            value={templateDescription}
-            onChange={(e) => setTemplateDescription(e.target.value)}
-            placeholder="Describe this mapping template..."
-            className="mt-1"
-          />
-        </div>
-      </div>
-
-      {/* Tabs */}
-      <div className="border-b">
-        <div className="flex space-x-4">
-          <button
-            onClick={() => setActiveTab("upload")}
-            className={`px-4 py-2 font-medium border-b-2 transition-colors ${
-              activeTab === "upload"
-                ? "border-primary text-primary"
-                : "border-transparent text-gray-500"
-            }`}
-          >
-            1. Upload CSV
-          </button>
-          <button
-            onClick={() => setActiveTab("mapping")}
-            disabled={!csvData}
-            className={`px-4 py-2 font-medium border-b-2 transition-colors ${
-              activeTab === "mapping"
-                ? "border-primary text-primary"
-                : "border-transparent text-gray-500"
-            } disabled:opacity-50 disabled:cursor-not-allowed`}
-          >
-            2. Map Data
-          </button>
-          <button
-            onClick={() => setActiveTab("config")}
-            disabled={!csvData}
-            className={`px-4 py-2 font-medium border-b-2 transition-colors ${
-              activeTab === "config"
-                ? "border-primary text-primary"
-                : "border-transparent text-gray-500"
-            } disabled:opacity-50 disabled:cursor-not-allowed`}
-          >
-            3. Config Variables
-          </button>
-        </div>
-      </div>
-
-      {/* Tab Content */}
-      <div className="py-6">
-        {activeTab === "upload" && (
-          <div className="space-y-4">
-            <CSVUploadComponent onUpload={handleCSVUpload} />
-            {csvData && (
-              <div className="p-4 bg-green-50 border border-green-200 rounded">
-                <p className="font-medium text-green-800">
-                  ✓ CSV Uploaded Successfully
-                </p>
-                <p className="text-sm text-green-700 mt-1">
-                  {csvData.filename} - {csvData.rowCount} rows,{" "}
-                  {csvData.columns.length} columns
-                </p>
-              </div>
-            )}
+      {/* Header with template metadata */}
+      <div className="space-y-4 rounded-lg border bg-card p-6">
+        <div className="grid gap-4 md:grid-cols-2">
+          <div className="space-y-2">
+            <Label htmlFor="template-name">Map Template Name *</Label>
+            <Input
+              id="template-name"
+              placeholder="e.g., Production Data Standard Map"
+              value={templateName}
+              onChange={(e) => setTemplateName(e.target.value)}
+            />
           </div>
-        )}
+          <div className="space-y-2">
+            <Label htmlFor="template-description">Description</Label>
+            <Textarea
+              id="template-description"
+              placeholder="Optional description of this mapping template"
+              value={templateDescription}
+              onChange={(e) => setTemplateDescription(e.target.value)}
+              rows={1}
+            />
+          </div>
+        </div>
+      </div>
 
-        {activeTab === "mapping" && csvData && (
+      {/* Main content tabs */}
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="upload">1. Upload CSV</TabsTrigger>
+          <TabsTrigger value="mapping" disabled={!csvData}>
+            2. Map Data
+          </TabsTrigger>
+          <TabsTrigger value="config">3. Config Variables</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="upload" className="space-y-4">
+          <CSVUploadComponent
+            onUploadComplete={handleCsvUpload}
+            onRemove={() => setCsvData(undefined)}
+            currentFile={csvData}
+          />
+
+          {csvData && (
+            <Alert>
+              <IconAlertCircle className="h-4 w-4" />
+              <AlertTitle>CSV Loaded</AlertTitle>
+              <AlertDescription>
+                Your file has {csvData.columns.length} columns and{" "}
+                {csvData.rowCount} rows. Click "Map Data" to continue.
+              </AlertDescription>
+            </Alert>
+          )}
+        </TabsContent>
+
+        <TabsContent value="mapping" className="space-y-4">
+          <div className="space-y-2">
+            <h3 className="text-lg font-semibold">Column Mapping</h3>
+            <p className="text-sm text-muted-foreground">
+              Map your CSV columns or fixed values to ontology properties.
+              Choose "CSV Column" to map from your data, or "Fixed Value" for
+              constants.
+            </p>
+          </div>
+
           <MappingTable
             csvData={csvData}
-            mappings={mappings}
-            onMappingsChange={setMappings}
+            initialMappings={mappings}
+            onChange={setMappings}
           />
-        )}
+        </TabsContent>
 
-        {activeTab === "config" && (
+        <TabsContent value="config" className="space-y-4">
+          <div className="space-y-2">
+            <h3 className="text-lg font-semibold">Configuration Variables</h3>
+            <p className="text-sm text-muted-foreground">
+              Set your analysis parameters. These values will be used when
+              running analyses with this map template.
+            </p>
+          </div>
+
           <ConfigVariablesEditor
             values={configValues}
             onChange={setConfigValues}
           />
-        )}
-      </div>
+        </TabsContent>
+      </Tabs>
 
-      {/* Actions */}
-      {mode === "builder" && (
-        <div className="flex justify-end space-x-4 pt-4 border-t">
-          <Button variant="outline">Cancel</Button>
-          <Button onClick={handleSave} disabled={!csvData}>
-            Save Map Template
-          </Button>
-        </div>
-      )}
+      {/* Action buttons */}
+      <div className="flex justify-between rounded-lg border bg-muted/50 p-4">
+        <Button variant="outline" onClick={onCancel}>
+          Cancel
+        </Button>
+        <Button onClick={handleSave} disabled={!canSave}>
+          <IconSave className="mr-2 h-4 w-4" />
+          Save Map Template
+        </Button>
+      </div>
     </div>
   );
 }

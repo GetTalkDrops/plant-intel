@@ -1,10 +1,6 @@
-/**
- * Mapping Components Export
- * Centralized exports for all mapping-related components
- */
+// Export all mapping components from a single location
 
+export { CSVMapper } from "./csv-mapper";
 export { CSVUploadComponent } from "./csv-upload";
 export { MappingTable } from "./mapping-table";
 export { ConfigVariablesEditor } from "./config-variables-editor";
-export { CSVMapper } from "./csv-mapper";
-export { MapTemplateCard } from "./map-template-card";
