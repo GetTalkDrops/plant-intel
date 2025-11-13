@@ -1,19 +1,24 @@
 "use client";
 
-/**
- * Map Template Card Component
- * Displays a mapping template in card format (for library view)
- */
-
-import { MappingTemplate } from "@/types/mapping";
-import { Card } from "@/components/ui/card";
+import * as React from "react";
+import { IconClock, IconFileText, IconSettings } from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { MapTemplateSummary } from "@/types/mapping";
 
 interface MapTemplateCardProps {
-  template: MappingTemplate;
-  onSelect?: (id: string) => void;
-  onEdit?: (id: string) => void;
-  onDelete?: (id: string) => void;
+  template: MapTemplateSummary;
+  onSelect?: (templateId: string) => void;
+  onEdit?: (templateId: string) => void;
+  onDelete?: (templateId: string) => void;
 }
 
 export function MapTemplateCard({
@@ -22,72 +27,82 @@ export function MapTemplateCard({
   onEdit,
   onDelete,
 }: MapTemplateCardProps) {
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
+  };
+
   return (
-    <Card className="p-4 hover:shadow-lg transition-shadow">
-      <div className="space-y-4">
-        {/* Header */}
-        <div>
-          <h3 className="text-lg font-semibold">{template.name}</h3>
-          {template.description && (
-            <p className="text-sm text-gray-600 mt-1">{template.description}</p>
-          )}
+    <Card className="transition-shadow hover:shadow-md">
+      <CardHeader>
+        <div className="flex items-start justify-between">
+          <div className="space-y-1">
+            <CardTitle>{template.name}</CardTitle>
+            {template.description && (
+              <CardDescription className="line-clamp-2">
+                {template.description}
+              </CardDescription>
+            )}
+          </div>
+        </div>
+      </CardHeader>
+
+      <CardContent className="space-y-4">
+        <div className="flex gap-4 text-sm text-muted-foreground">
+          <div className="flex items-center gap-1">
+            <IconFileText className="h-4 w-4" />
+            <span>{template.columnCount} columns</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <IconSettings className="h-4 w-4" />
+            <span>{template.configCount} configs</span>
+          </div>
         </div>
 
-        {/* Metadata */}
-        <div className="space-y-2 text-sm text-gray-600">
-          <div className="flex justify-between">
-            <span>Mappings:</span>
-            <span className="font-medium">{template.mappings.length}</span>
-          </div>
-          <div className="flex justify-between">
-            <span>Mapped:</span>
-            <span className="font-medium">
-              {template.mappings.filter((m) => m.status === "mapped").length}
-            </span>
-          </div>
-          {template.createdAt && (
-            <div className="flex justify-between">
-              <span>Created:</span>
-              <span className="font-medium">
-                {new Date(template.createdAt).toLocaleDateString()}
-              </span>
-            </div>
+        <div className="flex gap-2">
+          <Badge variant="outline" className="text-xs">
+            <IconClock className="mr-1 h-3 w-3" />
+            Created {formatDate(template.createdAt)}
+          </Badge>
+          {template.lastUsed && (
+            <Badge variant="secondary" className="text-xs">
+              Last used {formatDate(template.lastUsed)}
+            </Badge>
           )}
         </div>
+      </CardContent>
 
-        {/* Actions */}
-        <div className="flex space-x-2 pt-2 border-t">
-          {onSelect && (
-            <Button
-              variant="default"
-              size="sm"
-              onClick={() => onSelect(template.id!)}
-              className="flex-1"
-            >
-              Use Template
-            </Button>
-          )}
-          {onEdit && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => onEdit(template.id!)}
-            >
-              Edit
-            </Button>
-          )}
-          {onDelete && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => onDelete(template.id!)}
-              className="text-red-600 hover:text-red-700"
-            >
-              Delete
-            </Button>
-          )}
-        </div>
-      </div>
+      <CardFooter className="flex gap-2">
+        {onSelect && (
+          <Button
+            onClick={() => onSelect(template.id)}
+            className="flex-1"
+          >
+            Use Template
+          </Button>
+        )}
+        {onEdit && (
+          <Button
+            variant="outline"
+            onClick={() => onEdit(template.id)}
+          >
+            Edit
+          </Button>
+        )}
+        {onDelete && (
+          <Button
+            variant="ghost"
+            onClick={() => onDelete(template.id)}
+            className="text-destructive hover:text-destructive"
+          >
+            Delete
+          </Button>
+        )}
+      </CardFooter>
     </Card>
   );
 }
