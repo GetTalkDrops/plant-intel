@@ -1,75 +1,84 @@
-/**
- * Type definitions for the PlantIntel Mapping System
- * All TypeScript interfaces and types for CSV mapping functionality
- */
+// Core types for the CSV mapping system
 
-// CSV Upload Data
+export type SourceType = "csv" | "fixed";
+
+export type DataType = "string" | "number" | "date" | "boolean";
+
+// Ontology entity structure
+export interface OntologyEntity {
+  name: string;
+  properties: OntologyProperty[];
+}
+
+export interface OntologyProperty {
+  key: string;
+  displayName: string;
+  dataType: DataType;
+  required: boolean;
+  description?: string;
+}
+
+// CSV mapping row - represents one line in the mapping table
+export interface MappingRow {
+  id: string;
+  sourceType: SourceType;
+
+  // For CSV source type
+  csvColumn?: string;
+  csvDataType?: DataType;
+  sampleData?: string[];
+
+  // For fixed source type
+  fixedValue?: string;
+
+  // Ontology mapping
+  ontologyEntity: string;  // e.g., "Machine", "Material"
+  ontologyProperty: string; // e.g., "id", "laborRate"
+
+  // Status
+  status: "mapped" | "unmapped" | "error";
+  validationMessage?: string;
+}
+
+// Complete mapping template
+export interface MappingTemplate {
+  id: string;
+  name: string;
+  description?: string;
+  createdAt: string;
+  updatedAt: string;
+  mappings: MappingRow[];
+  configVariables: ConfigVariable[];
+  userId: string;
+  isActive: boolean;
+}
+
+// Config variables (the 10 core user-facing variables)
+export interface ConfigVariable {
+  key: string;
+  displayName: string;
+  value: string | number | boolean;
+  unit?: string;
+  dataType: DataType;
+  description?: string;
+}
+
+// CSV upload metadata
 export interface CSVUpload {
   filename: string;
   columns: string[];
   rowCount: number;
   sampleRows: Record<string, any>[];
+  uploadedAt: string;
 }
 
-// Mapping Row (one per CSV column)
-export interface MappingRow {
+// For the analysis selection view
+export interface MapTemplateSummary {
   id: string;
-  sourceType: "csv" | "fixed";
-  sourceColumn?: string;
-  fixedValue?: string;
-  ontologyEntity: string;
-  ontologyProperty: string;
-  dataType: "string" | "number" | "boolean" | "date";
-  sampleData?: string[];
-  status: "unmapped" | "mapped" | "error";
-  validationError?: string;
-}
-
-// Complete Mapping Template
-export interface MappingTemplate {
-  id?: string;
   name: string;
   description?: string;
-  mappings: MappingRow[];
-  configVariables: Record<string, any>;
-  csvUpload?: CSVUpload;
-  createdAt?: string;
-  updatedAt?: string;
-}
-
-// Ontology Entity Definition
-export interface OntologyEntity {
-  name: string;
-  description: string;
-  properties: OntologyProperty[];
-}
-
-// Ontology Property Definition
-export interface OntologyProperty {
-  name: string;
-  type: "string" | "number" | "boolean" | "date";
-  required: boolean;
-  description?: string;
-}
-
-// Config Variable Definition
-export interface ConfigVariable {
-  key: string;
-  label: string;
-  type: "number" | "text" | "boolean";
-  defaultValue: any;
-  description: string;
-  group: string;
-  validation?: {
-    min?: number;
-    max?: number;
-    pattern?: string;
-  };
-}
-
-// Dropdown Option
-export interface OntologyOption {
-  value: string;
-  label: string;
-  entity?: string;
+  columnCount: number;
+  configCount: number;
+  lastUsed?: string;
+  createdAt: string;
 }
