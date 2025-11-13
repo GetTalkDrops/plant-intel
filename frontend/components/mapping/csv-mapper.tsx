@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { IconSave, IconAlertCircle } from "@tabler/icons-react";
+import { IconDeviceFloppy, IconAlertCircle } from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -200,7 +200,7 @@ export function CSVMapper({
           Cancel
         </Button>
         <Button onClick={handleSave} disabled={!canSave}>
-          <IconSave className="mr-2 h-4 w-4" />
+          <IconDeviceFloppy className="mr-2 h-4 w-4" />
           Save Map Template
         </Button>
       </div>
