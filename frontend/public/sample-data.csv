@@ -1,0 +1,6 @@
+machine_id,machine_name,machine_type,status,material_id,material_name,quantity,production_date,output_units
+M001,CNC Mill Alpha,CNC,operational,MAT001,Steel Grade A,500,2024-01-15,1200
+M002,Lathe Beta,Lathe,maintenance,MAT002,Aluminum,350,2024-01-16,950
+M003,Press Gamma,Press,operational,MAT003,Copper,200,2024-01-17,800
+M004,Drill Delta,Drill,operational,MAT001,Steel Grade A,450,2024-01-18,1100
+M005,Grinder Epsilon,Grinder,offline,MAT004,Brass,100,2024-01-19,600
