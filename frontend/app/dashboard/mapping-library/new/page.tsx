@@ -1,34 +1,31 @@
-// app/dashboard/mapping-library/new/page.tsx
-
 "use client";
 
-import MappingTable from "@/components/mapping-table";
-import { Button } from "@/components/ui/button";
+import * as React from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { IconArrowLeft } from "@tabler/icons-react";
-
-// Define the mapping type
-interface MappingRow {
-  id: string;
-  csvColumn: string;
-  ontologyField: string;
-  relationship?: string;
-}
-
-interface MappingPayload {
-  rows: MappingRow[];
-  metadata: {
-    name: string;
-    description?: string;
-  };
-}
+import { Button } from "@/components/ui/button";
+import { CSVMapper } from "@/components/mapping";
+import { MappingTemplate } from "@/types/mapping";
 
 export default function NewMapPage() {
-  const handleSaveMapping = (mapping: MappingPayload) => {
-    // ← FIX TYPE
-    console.log("Saving mapping:", mapping);
+  const router = useRouter();
+
+  const handleSave = async (template: MappingTemplate) => {
+    console.log("Saving template:", template);
+
     // TODO: Save to Supabase
-    // router.push('/dashboard/mapping-library')
+    // Example:
+    // const { data, error } = await supabase
+    //   .from('mapping_templates')
+    //   .insert([template])
+
+    // For now, just log and redirect
+    // router.push("/dashboard/mapping-library");
+  };
+
+  const handleCancel = () => {
+    router.push("/dashboard/mapping-library");
   };
 
   return (
@@ -42,12 +39,17 @@ export default function NewMapPage() {
         <div>
           <h2 className="text-2xl font-bold">Create New Map</h2>
           <p className="text-muted-foreground">
-            Define your CSV mapping without uploading a file
+            Upload a CSV and map your data to the ontology
           </p>
         </div>
       </div>
 
-      <MappingTable onSave={handleSaveMapping} showMetadata={true} />
+      {/* Use the new CSVMapper component */}
+      <CSVMapper
+        mode="builder"
+        onSave={handleSave}
+        onCancel={handleCancel}
+      />
     </div>
   );
 }
