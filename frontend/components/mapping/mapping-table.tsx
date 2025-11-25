@@ -5,6 +5,7 @@ import {
   IconCircleCheckFilled,
   IconAlertTriangle,
   IconGripVertical,
+  IconSettings,
 } from "@tabler/icons-react";
 import {
   ColumnDef,
@@ -15,7 +16,6 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -24,6 +24,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
+  Sheet,
+  SheetContent,
+  SheetTrigger,
+} from "@/components/ui/sheet";
+import {
   Table,
   TableBody,
   TableCell,
@@ -31,19 +36,19 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { MappingRow, CSVUpload, SourceType } from "@/types/mapping";
+import { PropertyMapping, CSVUpload, SourceType, FieldTransformation, BusinessRule } from "@/types/mapping";
 import {
-  getFlatOntologyOptions,
   getEntityNames,
   getEntityProperties,
 } from "@/lib/ontology-schema";
 import { formatSampleData, getSampleData } from "@/lib/csv-utils";
-import { validateMappingRow } from "@/lib/mapping-validation";
+import { reconstructSampleRows } from "@/lib/sample-data-utils";
+import { FieldConfigPanel } from "./field-config-panel";
 
 interface MappingTableProps {
   csvData?: CSVUpload;
-  initialMappings?: MappingRow[];
-  onChange?: (mappings: MappingRow[]) => void;
+  initialMappings?: PropertyMapping[];
+  onChange?: (mappings: PropertyMapping[]) => void;
 }
 
 export function MappingTable({
@@ -51,17 +56,19 @@ export function MappingTable({
   initialMappings = [],
   onChange,
 }: MappingTableProps) {
-  const [mappings, setMappings] = React.useState<MappingRow[]>(() => {
+  const [mappings, setMappings] = React.useState<PropertyMapping[]>(() => {
     // If CSV data is provided and no initial mappings, create rows from CSV columns
     if (csvData && initialMappings.length === 0) {
       return csvData.columns.map((column, index) => ({
-        id: `mapping-${index}`,
-        sourceType: "csv" as SourceType,
-        csvColumn: column,
-        sampleData: getSampleData(csvData, column),
         ontologyEntity: "",
         ontologyProperty: "",
-        status: "unmapped" as const,
+        displayName: "",
+        dataType: "string",
+        required: false,
+        sourceType: "csv" as SourceType,
+        csvColumn: column,
+        isMapped: false,
+        sampleValues: getSampleData(csvData, column),
       }));
     }
     return initialMappings;
@@ -72,18 +79,20 @@ export function MappingTable({
   }, [mappings, onChange]);
 
   const updateMapping = (
-    id: string,
-    updates: Partial<MappingRow>
+    index: number,
+    updates: Partial<PropertyMapping>
   ) => {
     setMappings((prev) =>
-      prev.map((row) => {
-        if (row.id === id) {
+      prev.map((row, idx) => {
+        if (idx === index) {
           const updated = { ...row, ...updates };
 
-          // Auto-update status based on validation
-          const validation = validateMappingRow(updated);
-          updated.status = validation.isValid ? "mapped" : "error";
-          updated.validationMessage = validation.errors[0];
+          // Auto-update isMapped status
+          updated.isMapped = !!(
+            updated.ontologyEntity &&
+            updated.ontologyProperty &&
+            (updated.csvColumn || updated.fixedValue)
+          );
 
           return updated;
         }
@@ -93,21 +102,23 @@ export function MappingTable({
   };
 
   const addRow = () => {
-    const newRow: MappingRow = {
-      id: `mapping-${Date.now()}`,
-      sourceType: "fixed",
+    const newRow: PropertyMapping = {
       ontologyEntity: "",
       ontologyProperty: "",
-      status: "unmapped",
+      displayName: "",
+      dataType: "string",
+      required: false,
+      sourceType: "fixed",
+      isMapped: false,
     };
     setMappings((prev) => [...prev, newRow]);
   };
 
-  const removeRow = (id: string) => {
-    setMappings((prev) => prev.filter((row) => row.id !== id));
+  const removeRow = (index: number) => {
+    setMappings((prev) => prev.filter((_, idx) => idx !== index));
   };
 
-  const columns: ColumnDef<MappingRow>[] = [
+  const columns: ColumnDef<PropertyMapping>[] = [
     {
       id: "drag",
       header: () => null,
@@ -129,7 +140,7 @@ export function MappingTable({
           <Select
             value={row.original.sourceType}
             onValueChange={(value: SourceType) =>
-              updateMapping(row.original.id, { sourceType: value })
+              updateMapping(row.index, { sourceType: value })
             }
           >
             <SelectTrigger size="sm">
@@ -155,7 +166,7 @@ export function MappingTable({
               <Select
                 value={mapping.csvColumn || ""}
                 onValueChange={(value) =>
-                  updateMapping(mapping.id, { csvColumn: value })
+                  updateMapping(row.index, { csvColumn: value })
                 }
               >
                 <SelectTrigger size="sm" className="w-48">
@@ -169,9 +180,9 @@ export function MappingTable({
                   ))}
                 </SelectContent>
               </Select>
-              {mapping.sampleData && (
+              {mapping.sampleValues && (
                 <p className="text-xs text-muted-foreground">
-                  {formatSampleData(mapping.sampleData)}
+                  {formatSampleData(mapping.sampleValues)}
                 </p>
               )}
             </div>
@@ -183,7 +194,7 @@ export function MappingTable({
             placeholder="Enter fixed value"
             value={mapping.fixedValue || ""}
             onChange={(e) =>
-              updateMapping(mapping.id, { fixedValue: e.target.value })
+              updateMapping(row.index, { fixedValue: e.target.value })
             }
             className="h-8 w-48"
           />
@@ -202,7 +213,7 @@ export function MappingTable({
             <Select
               value={mapping.ontologyEntity}
               onValueChange={(value) =>
-                updateMapping(mapping.id, {
+                updateMapping(row.index, {
                   ontologyEntity: value,
                   ontologyProperty: "", // Reset property when entity changes
                 })
@@ -223,7 +234,7 @@ export function MappingTable({
             <Select
               value={mapping.ontologyProperty}
               onValueChange={(value) =>
-                updateMapping(mapping.id, { ontologyProperty: value })
+                updateMapping(row.index, { ontologyProperty: value })
               }
               disabled={!mapping.ontologyEntity}
             >
@@ -248,9 +259,14 @@ export function MappingTable({
       header: "Status",
       cell: ({ row }) => {
         const mapping = row.original;
-        const validation = validateMappingRow(mapping);
 
-        if (validation.isValid) {
+        // Check if mapping is complete
+        const isMapped = mapping.isMapped &&
+          mapping.ontologyEntity &&
+          mapping.ontologyProperty &&
+          (mapping.csvColumn || mapping.fixedValue);
+
+        if (isMapped) {
           return (
             <Badge variant="outline" className="gap-1">
               <IconCircleCheckFilled className="h-3 w-3 fill-green-500" />
@@ -259,11 +275,14 @@ export function MappingTable({
           );
         }
 
-        if (validation.errors.length > 0) {
+        // Check for partial mapping (started but not complete)
+        const isPartial = mapping.ontologyEntity || mapping.ontologyProperty || mapping.csvColumn || mapping.fixedValue;
+
+        if (isPartial) {
           return (
             <Badge variant="outline" className="gap-1 text-amber-600">
               <IconAlertTriangle className="h-3 w-3" />
-              {validation.errors[0]}
+              Incomplete
             </Badge>
           );
         }
@@ -276,13 +295,78 @@ export function MappingTable({
       },
     },
     {
+      id: "configure",
+      header: () => null,
+      cell: ({ row }) => {
+        const mapping = row.original;
+        const [open, setOpen] = React.useState(false);
+
+        // Only show configure button if field is mapped and not a fixed value
+        const canConfigure =
+          mapping.isMapped &&
+          mapping.sourceType === "csv" &&
+          mapping.ontologyEntity &&
+          mapping.ontologyProperty;
+
+        if (!canConfigure) {
+          return null;
+        }
+
+        const handleSave = (updates: {
+          transformations?: FieldTransformation[];
+          businessRule?: any;
+        }) => {
+          updateMapping(row.index, updates);
+          setOpen(false);
+        };
+
+        const hasConfig =
+          (mapping.transformations && mapping.transformations.length > 0) ||
+          mapping.businessRule;
+
+        // Reconstruct sample data rows from all mappings
+        const sampleRows = React.useMemo(
+          () => reconstructSampleRows(mappings),
+          [mappings]
+        );
+
+        return (
+          <Sheet open={open} onOpenChange={setOpen}>
+            <SheetTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="gap-1 text-muted-foreground hover:text-foreground"
+              >
+                <IconSettings className="h-4 w-4" />
+                {hasConfig && (
+                  <Badge variant="secondary" className="h-4 px-1 text-xs">
+                    {mapping.businessRule ? "Rule" : ""}
+                  </Badge>
+                )}
+              </Button>
+            </SheetTrigger>
+            <SheetContent className="w-full sm:max-w-md">
+              <FieldConfigPanel
+                mapping={mapping}
+                allMappings={mappings}
+                sampleData={sampleRows}
+                onSave={handleSave}
+                onCancel={() => setOpen(false)}
+              />
+            </SheetContent>
+          </Sheet>
+        );
+      },
+    },
+    {
       id: "actions",
       header: () => null,
       cell: ({ row }) => (
         <Button
           variant="ghost"
           size="sm"
-          onClick={() => removeRow(row.original.id)}
+          onClick={() => removeRow(row.index)}
           className="text-muted-foreground hover:text-destructive"
         >
           Remove

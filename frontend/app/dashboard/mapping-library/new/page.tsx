@@ -6,13 +6,13 @@ import Link from "next/link";
 import { IconArrowLeft } from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
 import { CSVMapper } from "@/components/mapping";
-import { MappingTemplate } from "@/types/mapping";
+import { MappingProfile } from "@/types/mapping";
 
 export default function NewMapPage() {
   const router = useRouter();
 
-  const handleSave = async (template: MappingTemplate) => {
-    console.log("Saving template:", template);
+  const handleSave = async (profile: MappingProfile) => {
+    console.log("Saving profile:", profile);
 
     // TODO: Save to Supabase
     // Example:
