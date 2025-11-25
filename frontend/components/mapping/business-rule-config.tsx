@@ -23,6 +23,7 @@ import {
 } from "@/types/mapping";
 import { previewBusinessRule, RuleError } from "@/lib/business-rule-validator";
 import { RulePreview } from "./rule-preview";
+import { RuleTemplateSelector } from "./rule-template-selector";
 
 interface BusinessRuleConfigProps {
   businessRule?: BusinessRule;
@@ -93,20 +94,30 @@ export function BusinessRuleConfig({
     onChange(undefined);
   };
 
+  const handleApplyTemplate = (rule: BusinessRule) => {
+    onChange(rule);
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <Label>Business Rule Type</Label>
-        {businessRule && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleClear}
-            className="h-7 text-xs text-muted-foreground"
-          >
-            Clear Rule
-          </Button>
-        )}
+        <div className="flex items-center gap-2">
+          <RuleTemplateSelector
+            availableFields={availableFields}
+            onApplyTemplate={handleApplyTemplate}
+          />
+          {businessRule && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleClear}
+              className="h-7 text-xs text-muted-foreground"
+            >
+              Clear Rule
+            </Button>
+          )}
+        </div>
       </div>
 
       <Select

@@ -1,7 +1,7 @@
 # Mapping System Implementation Status
 
-**Last Updated:** Session Continued - Phase 1 Complete
-**Status:** Phase 1 Complete ✅ - Ready for Phase 2
+**Last Updated:** Session Continued - Phase 2.1 Complete
+**Status:** Phase 1 Complete ✅ | Phase 2.1 Complete ✅
 
 ---
 
@@ -90,25 +90,43 @@
 
 ---
 
-## 📋 ROADMAP: Remaining Phases
+## 🏗️ IN PROGRESS: Phase 2 - Accelerate Map Creation
 
-### Phase 2: Accelerate Map Creation
-**Priority Items:**
-1. **Rule Templates** - Pre-built patterns users can click to apply
-   - Shift Premium template (day/night)
-   - Machine Rates template
-   - Material Grade template
-   - Overtime Multiplier template
+### Phase 2.1: Rule Templates ✅ COMPLETE
+**Completed:**
+1. ✅ Created rule-templates.ts with 7 pre-built templates
+2. ✅ Built RuleTemplateSelector UI component
+3. ✅ Integrated template selector into BusinessRuleConfig
+4. ✅ Templates organized by category (labor, material, machine, time, other)
 
-2. **Auto-Suggest Patterns** - Detect patterns in sample data
-   - Detect shift patterns in time fields
-   - Detect machine ID patterns
-   - Suggest lookup tables automatically
+**Templates Available:**
+- Shift Premium (conditional) - Day vs night shift rates
+- Weekend Premium (conditional) - Saturday/Sunday overtime
+- Machine Rates (lookup) - Machine-specific scrap/efficiency rates
+- Material Grade Pricing (lookup) - Cost by material grade
+- Premium Material Pricing (conditional) - Pricing by material prefix
+- Overtime Threshold (conditional) - Overtime after 40 hours
+- Department Overhead Rates (lookup) - Department-specific rates
 
-3. **Copy/Paste Rules** - Reuse rules across fields
-   - Copy rule from one field
-   - Paste to another field
-   - Bulk apply to multiple fields
+**How It Works:**
+- Users click "Use Template" button in BusinessRuleConfig
+- Select from categorized list of templates
+- Configure required fields (source/condition field)
+- Template auto-fills with example values
+- Users can edit values after applying
+
+### Phase 2.2: Auto-Suggest Patterns ⏳ PENDING
+**To Build:**
+1. Pattern detection in sample data
+2. Auto-suggest lookup tables
+3. Auto-suggest conditional rules
+4. Confidence scoring for suggestions
+
+### Phase 2.3: Copy/Paste Rules ⏳ PENDING
+**To Build:**
+1. Copy rule from one field
+2. Paste to another field
+3. Bulk apply to multiple fields
 
 ### Phase 3: Polish & Scale
 **Priority Items:**
@@ -254,11 +272,13 @@ frontend/
 ├── lib/
 │   ├── business-rule-validator.ts     # Rule evaluation + error detection (✅ Complete)
 │   ├── sample-data-utils.ts           # Sample row reconstruction (✅ Complete)
+│   ├── rule-templates.ts              # Pre-built rule templates (✅ Complete)
 │   ├── ontology-schema.ts             # Manufacturing ontology
 │   ├── csv-utils.ts                   # CSV helpers
 │   └── config-variables.ts            # Global config defaults
 ├── components/mapping/
-│   ├── business-rule-config.tsx       # Rule builder UI with validation (✅ Complete)
+│   ├── business-rule-config.tsx       # Rule builder UI with templates (✅ Complete)
+│   ├── rule-template-selector.tsx     # Template picker dialog (✅ Complete)
 │   ├── field-config-panel.tsx         # Drawer content with error handling (✅ Complete)
 │   ├── rule-preview.tsx               # Preview results display (✅ Complete)
 │   ├── mapping-table.tsx              # Main table with configure button (✅ Complete)
@@ -292,7 +312,7 @@ frontend/
 
 ---
 
-## 🎉 PHASE 1 COMPLETE
+## 🎉 PHASE 1 COMPLETE - Validation & Preview
 
 **What Was Built:**
 - Complete business rules type system (lookup, conditional, formula placeholder)
@@ -303,6 +323,29 @@ frontend/
 - Sample data reconstruction utility
 
 **Impact:**
-Users can now configure business rules with confidence. The system validates rules as they type, shows exactly what will happen with sample data, and prevents saving invalid configurations. This is the foundation for the competitive moat - encoding domain knowledge as reusable configurations.
+Users can now configure business rules with confidence. The system validates rules as they type, shows exactly what will happen with sample data, and prevents saving invalid configurations.
 
-**Next:** Phase 2 - Accelerate Map Creation (Rule Templates & Auto-Suggest)
+---
+
+## 🎉 PHASE 2.1 COMPLETE - Rule Templates
+
+**What Was Built:**
+- 7 pre-built rule templates covering common manufacturing scenarios
+- Template categories: labor, material, machine, time, other
+- RuleTemplateSelector component with dialog UI
+- Template configuration flow (select → configure → apply)
+- Integration into BusinessRuleConfig with "Use Template" button
+
+**Templates:**
+1. Shift Premium - Day/night labor rate multipliers
+2. Weekend Premium - Saturday/Sunday overtime rates
+3. Machine Rates - Machine-specific lookup tables
+4. Material Grade Pricing - Cost by material grade
+5. Premium Material Pricing - Conditional pricing by prefix
+6. Overtime Threshold - Overtime multiplier after 40 hours
+7. Department Overhead Rates - Department-specific rates
+
+**Impact:**
+Users can now configure business rules in seconds instead of minutes. Templates encode best practices and common patterns, dramatically reducing setup time for new mapping profiles. This accelerates the "time to first map" metric and reduces errors.
+
+**Next:** Phase 2.2 - Auto-Suggest Patterns (detect patterns in sample data)
