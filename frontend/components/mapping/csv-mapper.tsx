@@ -20,39 +20,38 @@ import {
 import { CSVUploadComponent } from "./csv-upload";
 import { MappingTable } from "./mapping-table";
 import { ConfigVariablesEditor } from "./config-variables-editor";
-import { MappingTemplate, MappingRow, CSVUpload } from "@/types/mapping";
-import { validateMappingTemplate } from "@/lib/mapping-validation";
+import { MappingProfile, PropertyMapping, CSVUpload, ConfigVariable } from "@/types/mapping";
 import { getDefaultConfigValues } from "@/lib/config-variables";
 import { toast } from "sonner";
 
 interface CSVMapperProps {
   mode: "builder" | "selector";
-  initialTemplate?: MappingTemplate;
-  onSave?: (template: MappingTemplate) => void;
+  initialProfile?: MappingProfile;
+  onSave?: (profile: MappingProfile) => void;
   onCancel?: () => void;
 }
 
 export function CSVMapper({
   mode,
-  initialTemplate,
+  initialProfile,
   onSave,
   onCancel,
 }: CSVMapperProps) {
   const [csvData, setCsvData] = React.useState<CSVUpload | undefined>(
     undefined
   );
-  const [templateName, setTemplateName] = React.useState(
-    initialTemplate?.name || ""
+  const [profileName, setProfileName] = React.useState(
+    initialProfile?.name || ""
   );
-  const [templateDescription, setTemplateDescription] = React.useState(
-    initialTemplate?.description || ""
+  const [profileDescription, setProfileDescription] = React.useState(
+    initialProfile?.description || ""
   );
-  const [mappings, setMappings] = React.useState<MappingRow[]>(
-    initialTemplate?.mappings || []
+  const [mappings, setMappings] = React.useState<PropertyMapping[]>(
+    initialProfile?.mappings || []
   );
   const [configValues, setConfigValues] = React.useState<Record<string, any>>(
-    initialTemplate?.configVariables.reduce(
-      (acc, cv) => ({ ...acc, [cv.key]: cv.value }),
+    initialProfile?.configVariables.reduce(
+      (acc: Record<string, any>, cv: ConfigVariable) => ({ ...acc, [cv.key]: cv.value }),
       {}
     ) || getDefaultConfigValues()
   );
@@ -64,41 +63,45 @@ export function CSVMapper({
   };
 
   const handleSave = () => {
-    const template: MappingTemplate = {
-      id: initialTemplate?.id || `template-${Date.now()}`,
-      name: templateName,
-      description: templateDescription,
-      createdAt: initialTemplate?.createdAt || new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
+    const profile: MappingProfile = {
+      id: initialProfile?.id || `profile-${Date.now()}`,
+      name: profileName,
+      description: profileDescription,
+      dataGranularity: "header", // TODO: Detect from CSV or let user choose
+      aggregationStrategy: null,
       mappings,
       configVariables: Object.entries(configValues).map(([key, value]) => ({
         key,
         displayName: key,
         value,
-        dataType: typeof value === "boolean" ? "boolean" : "number",
+        dataType: (typeof value === "boolean" ? "boolean" : "number") as "boolean" | "number",
       })),
+      createdAt: initialProfile?.createdAt || new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
       userId: "current-user", // TODO: Get from auth context
       isActive: true,
     };
 
-    const validation = validateMappingTemplate(template);
-
-    if (!validation.isValid) {
+    // Basic validation - ensure profile has name and at least one mapping
+    if (!profile.name.trim()) {
       toast.error("Validation failed", {
-        description: validation.errors[0],
+        description: "Profile name is required",
       });
       return;
     }
 
-    if (validation.warnings.length > 0) {
-      console.warn("Validation warnings:", validation.warnings);
+    if (profile.mappings.length === 0) {
+      toast.error("Validation failed", {
+        description: "At least one mapping is required",
+      });
+      return;
     }
 
-    onSave?.(template);
-    toast.success("Map template saved successfully");
+    onSave?.(profile);
+    toast.success("Mapping profile saved successfully");
   };
 
-  const canSave = templateName.trim() !== "" && mappings.length > 0;
+  const canSave = profileName.trim() !== "" && mappings.length > 0;
 
   if (mode === "selector") {
     // TODO: Implement selector mode (list of existing templates)
@@ -107,25 +110,25 @@ export function CSVMapper({
 
   return (
     <div className="space-y-6">
-      {/* Header with template metadata */}
+      {/* Header with profile metadata */}
       <div className="space-y-4 rounded-lg border bg-card p-6">
         <div className="grid gap-4 md:grid-cols-2">
           <div className="space-y-2">
-            <Label htmlFor="template-name">Map Template Name *</Label>
+            <Label htmlFor="profile-name">Mapping Profile Name *</Label>
             <Input
-              id="template-name"
-              placeholder="e.g., Production Data Standard Map"
-              value={templateName}
-              onChange={(e) => setTemplateName(e.target.value)}
+              id="profile-name"
+              placeholder="e.g., NetSuite Standard Export"
+              value={profileName}
+              onChange={(e) => setProfileName(e.target.value)}
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="template-description">Description</Label>
+            <Label htmlFor="profile-description">Description</Label>
             <Textarea
-              id="template-description"
-              placeholder="Optional description of this mapping template"
-              value={templateDescription}
-              onChange={(e) => setTemplateDescription(e.target.value)}
+              id="profile-description"
+              placeholder="Optional description of this mapping profile"
+              value={profileDescription}
+              onChange={(e) => setProfileDescription(e.target.value)}
               rows={1}
             />
           </div>
@@ -201,7 +204,7 @@ export function CSVMapper({
         </Button>
         <Button onClick={handleSave} disabled={!canSave}>
           <IconDeviceFloppy className="mr-2 h-4 w-4" />
-          Save Map Template
+          Save Mapping Profile
         </Button>
       </div>
     </div>
