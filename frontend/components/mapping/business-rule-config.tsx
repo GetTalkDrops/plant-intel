@@ -24,6 +24,8 @@ import {
 import { previewBusinessRule, RuleError } from "@/lib/business-rule-validator";
 import { RulePreview } from "./rule-preview";
 import { RuleTemplateSelector } from "./rule-template-selector";
+import { RuleSuggestions } from "./rule-suggestions";
+import { suggestBusinessRules } from "@/lib/pattern-detector";
 
 interface BusinessRuleConfigProps {
   businessRule?: BusinessRule;
@@ -41,6 +43,15 @@ export function BusinessRuleConfig({
   onValidationChange,
 }: BusinessRuleConfigProps) {
   const [showPreview, setShowPreview] = React.useState(false);
+  const [showSuggestions, setShowSuggestions] = React.useState(true);
+
+  // Calculate pattern suggestions when no rule is configured
+  const suggestions = React.useMemo(() => {
+    if (businessRule || !sampleData || sampleData.length === 0) {
+      return [];
+    }
+    return suggestBusinessRules("", availableFields, sampleData);
+  }, [businessRule, availableFields, sampleData]);
 
   // Calculate preview result and errors whenever rule or data changes
   const previewResult = React.useMemo(() => {
@@ -100,6 +111,15 @@ export function BusinessRuleConfig({
 
   return (
     <div className="space-y-4">
+      {/* Smart Suggestions - shown when no rule configured */}
+      {!businessRule && suggestions.length > 0 && showSuggestions && (
+        <RuleSuggestions
+          suggestions={suggestions}
+          onApplySuggestion={handleApplyTemplate}
+          onDismiss={() => setShowSuggestions(false)}
+        />
+      )}
+
       <div className="flex items-center justify-between">
         <Label>Business Rule Type</Label>
         <div className="flex items-center gap-2">
