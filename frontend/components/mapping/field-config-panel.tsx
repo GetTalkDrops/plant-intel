@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { IconCopy, IconClipboard } from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -16,6 +17,7 @@ import {
 } from "@/types/mapping";
 import { formatSampleData } from "@/lib/csv-utils";
 import { BusinessRuleConfig } from "./business-rule-config";
+import { useRuleClipboard } from "@/contexts/rule-clipboard-context";
 
 interface FieldConfigPanelProps {
   mapping: PropertyMapping;
@@ -39,6 +41,7 @@ export function FieldConfigPanel({
     mapping.businessRule
   );
   const [hasValidationErrors, setHasValidationErrors] = React.useState(false);
+  const { copiedRule, copyRule, pasteRule } = useRuleClipboard();
 
   // Get list of available CSV columns for business rules
   const availableFields = React.useMemo(() => {
@@ -56,6 +59,20 @@ export function FieldConfigPanel({
     onSave({
       businessRule,
     });
+  };
+
+  const handleCopy = () => {
+    if (businessRule) {
+      const fieldName = `${mapping.ontologyEntity}.${mapping.ontologyProperty}`;
+      copyRule(businessRule, fieldName);
+    }
+  };
+
+  const handlePaste = () => {
+    const rule = pasteRule();
+    if (rule) {
+      setBusinessRule(rule);
+    }
   };
 
   return (
@@ -151,17 +168,44 @@ export function FieldConfigPanel({
       </div>
 
       {/* Footer Actions */}
-      <div className="flex gap-2 border-t p-4">
-        <Button variant="outline" onClick={onCancel} className="flex-1">
-          Cancel
-        </Button>
-        <Button
-          onClick={handleSave}
-          disabled={hasValidationErrors}
-          className="flex-1"
-        >
-          Apply Changes
-        </Button>
+      <div className="space-y-2 border-t p-4">
+        {/* Copy/Paste Buttons */}
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleCopy}
+            disabled={!businessRule}
+            className="flex-1 gap-2"
+          >
+            <IconCopy className="h-4 w-4" />
+            Copy Rule
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handlePaste}
+            disabled={!copiedRule}
+            className="flex-1 gap-2"
+          >
+            <IconClipboard className="h-4 w-4" />
+            Paste Rule
+          </Button>
+        </div>
+
+        {/* Action Buttons */}
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={onCancel} className="flex-1">
+            Cancel
+          </Button>
+          <Button
+            onClick={handleSave}
+            disabled={hasValidationErrors}
+            className="flex-1"
+          >
+            Apply Changes
+          </Button>
+        </div>
       </div>
     </div>
   );
