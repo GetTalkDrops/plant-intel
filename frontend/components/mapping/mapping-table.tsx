@@ -383,7 +383,8 @@ export function MappingTable({
 
   return (
     <div className="space-y-4">
-      <div className="rounded-lg border">
+      {/* Desktop: Full Table with horizontal scroll */}
+      <div className="hidden md:block overflow-x-auto rounded-lg border">
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
@@ -431,7 +432,192 @@ export function MappingTable({
         </Table>
       </div>
 
-      <Button onClick={addRow} variant="outline">
+      {/* Mobile: Card Layout */}
+      <div className="md:hidden space-y-3">
+        {mappings.length > 0 ? (
+          mappings.map((mapping, index) => (
+            <div key={index} className="rounded-lg border bg-card p-4 space-y-3">
+              {/* Source Type */}
+              <div className="space-y-1">
+                <div className="text-xs font-medium text-muted-foreground">Source</div>
+                <Select
+                  value={mapping.sourceType}
+                  onValueChange={(value: SourceType) =>
+                    updateMapping(index, { sourceType: value })
+                  }
+                >
+                  <SelectTrigger size="sm">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="csv">CSV Column</SelectItem>
+                    <SelectItem value="fixed">Fixed Value</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Source Value */}
+              <div className="space-y-1">
+                <div className="text-xs font-medium text-muted-foreground">
+                  {mapping.sourceType === "csv" ? "CSV Column" : "Fixed Value"}
+                </div>
+                {mapping.sourceType === "csv" ? (
+                  <div className="space-y-1">
+                    <Select
+                      value={mapping.csvColumn || ""}
+                      onValueChange={(value) =>
+                        updateMapping(index, { csvColumn: value })
+                      }
+                    >
+                      <SelectTrigger size="sm">
+                        <SelectValue placeholder="Select CSV column" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {csvData?.columns.map((col) => (
+                          <SelectItem key={col} value={col}>
+                            {col}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {mapping.sampleValues && (
+                      <p className="text-xs text-muted-foreground truncate">
+                        {formatSampleData(mapping.sampleValues)}
+                      </p>
+                    )}
+                  </div>
+                ) : (
+                  <Input
+                    placeholder="Enter fixed value"
+                    value={mapping.fixedValue || ""}
+                    onChange={(e) =>
+                      updateMapping(index, { fixedValue: e.target.value })
+                    }
+                    className="h-9"
+                  />
+                )}
+              </div>
+
+              {/* Ontology Mapping */}
+              <div className="space-y-1">
+                <div className="text-xs font-medium text-muted-foreground">Map to Ontology</div>
+                <div className="flex gap-2">
+                  <Select
+                    value={mapping.ontologyEntity}
+                    onValueChange={(value) =>
+                      updateMapping(index, {
+                        ontologyEntity: value,
+                        ontologyProperty: "",
+                      })
+                    }
+                  >
+                    <SelectTrigger size="sm" className="flex-1">
+                      <SelectValue placeholder="Entity" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {getEntityNames().map((entity) => (
+                        <SelectItem key={entity} value={entity}>
+                          {entity}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+
+                  <Select
+                    value={mapping.ontologyProperty}
+                    onValueChange={(value) =>
+                      updateMapping(index, { ontologyProperty: value })
+                    }
+                    disabled={!mapping.ontologyEntity}
+                  >
+                    <SelectTrigger size="sm" className="flex-1">
+                      <SelectValue placeholder="Property" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {mapping.ontologyEntity &&
+                        getEntityProperties(mapping.ontologyEntity).map((prop) => (
+                          <SelectItem key={prop.key} value={prop.key}>
+                            {prop.displayName}
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {/* Status Badge */}
+              <div className="flex items-center justify-between pt-2 border-t">
+                <div>
+                  {mapping.isMapped &&
+                  mapping.ontologyEntity &&
+                  mapping.ontologyProperty &&
+                  (mapping.csvColumn || mapping.fixedValue) ? (
+                    <Badge variant="outline" className="gap-1">
+                      <IconCircleCheckFilled className="h-3 w-3 fill-green-500" />
+                      Mapped
+                    </Badge>
+                  ) : mapping.ontologyEntity ||
+                    mapping.ontologyProperty ||
+                    mapping.csvColumn ||
+                    mapping.fixedValue ? (
+                    <Badge variant="outline" className="gap-1 text-amber-600">
+                      <IconAlertTriangle className="h-3 w-3" />
+                      Incomplete
+                    </Badge>
+                  ) : (
+                    <Badge variant="outline" className="text-muted-foreground">
+                      Unmapped
+                    </Badge>
+                  )}
+                </div>
+
+                {/* Actions */}
+                <div className="flex gap-2">
+                  {mapping.isMapped &&
+                    mapping.sourceType === "csv" &&
+                    mapping.ontologyEntity &&
+                    mapping.ontologyProperty && (
+                      <Sheet>
+                        <SheetTrigger asChild>
+                          <Button variant="ghost" size="sm" className="h-8">
+                            <IconSettings className="h-4 w-4" />
+                          </Button>
+                        </SheetTrigger>
+                        <SheetContent className="w-full sm:max-w-md">
+                          <FieldConfigPanel
+                            mapping={mapping}
+                            allMappings={mappings}
+                            sampleData={reconstructSampleRows(mappings)}
+                            onSave={(updates) => {
+                              updateMapping(index, updates);
+                            }}
+                            onCancel={() => {}}
+                          />
+                        </SheetContent>
+                      </Sheet>
+                    )}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => removeRow(index)}
+                    className="h-8 text-destructive hover:text-destructive"
+                  >
+                    Remove
+                  </Button>
+                </div>
+              </div>
+            </div>
+          ))
+        ) : (
+          <div className="rounded-lg border bg-card p-8 text-center text-muted-foreground">
+            {csvData
+              ? "Upload a CSV file to start mapping"
+              : "No mappings yet. Add a row to get started."}
+          </div>
+        )}
+      </div>
+
+      <Button onClick={addRow} variant="outline" className="w-full md:w-auto">
         Add Row
       </Button>
     </div>
