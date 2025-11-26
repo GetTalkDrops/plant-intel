@@ -120,34 +120,40 @@ export function CSVMapper({
 
   return (
     <div className="space-y-6">
-      {/* Two column layout: Main content + Confidence Score */}
-      <div className="grid gap-6 lg:grid-cols-3">
-        {/* Left column: Profile metadata + tabs (2/3 width) */}
-        <div className="space-y-6 lg:col-span-2">
-          {/* Header with profile metadata */}
-          <div className="space-y-4 rounded-lg border bg-card p-6">
-            <div className="grid gap-4 md:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="profile-name">Mapping Profile Name *</Label>
-                <Input
-                  id="profile-name"
-                  placeholder="e.g., NetSuite Standard Export"
-                  value={profileName}
-                  onChange={(e) => setProfileName(e.target.value)}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="profile-description">Description</Label>
-                <Textarea
-                  id="profile-description"
-                  placeholder="Optional description of this mapping profile"
-                  value={profileDescription}
-                  onChange={(e) => setProfileDescription(e.target.value)}
-                  rows={1}
-                />
-              </div>
-            </div>
+      {/* Header with profile metadata */}
+      <div className="space-y-4 rounded-lg border bg-card p-6">
+        <div className="grid gap-4 md:grid-cols-2">
+          <div className="space-y-2">
+            <Label htmlFor="profile-name">Mapping Profile Name *</Label>
+            <Input
+              id="profile-name"
+              placeholder="e.g., NetSuite Standard Export"
+              value={profileName}
+              onChange={(e) => setProfileName(e.target.value)}
+            />
           </div>
+          <div className="space-y-2">
+            <Label htmlFor="profile-description">Description</Label>
+            <Textarea
+              id="profile-description"
+              placeholder="Optional description of this mapping profile"
+              value={profileDescription}
+              onChange={(e) => setProfileDescription(e.target.value)}
+              rows={1}
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Mobile: Confidence Score (collapsible) */}
+      <div className="lg:hidden">
+        <ConfidenceScorePanel score={confidenceScore} />
+      </div>
+
+      {/* Two column layout: Main content + Sidebar (desktop only) */}
+      <div className="grid gap-6 lg:grid-cols-3">
+        {/* Main content column */}
+        <div className="space-y-6 lg:col-span-2">
 
           {/* Main content tabs */}
           <Tabs value={activeTab} onValueChange={setActiveTab}>
@@ -223,14 +229,21 @@ export function CSVMapper({
           </div>
         </div>
 
-        {/* Right column: Confidence Score + Dependencies (1/3 width, sticky) */}
-        <div className="lg:col-span-1">
+        {/* Right sidebar: Confidence Score + Dependencies (desktop only, sticky) */}
+        <div className="hidden lg:block lg:col-span-1">
           <div className="sticky top-6 space-y-4">
             <ConfidenceScorePanel score={confidenceScore} />
             {mappings.length > 0 && <DependencyVisualizer mappings={mappings} />}
           </div>
         </div>
       </div>
+
+      {/* Mobile: Dependencies (shown after main content) */}
+      {mappings.length > 0 && (
+        <div className="lg:hidden">
+          <DependencyVisualizer mappings={mappings} />
+        </div>
+      )}
     </div>
   );
 }
