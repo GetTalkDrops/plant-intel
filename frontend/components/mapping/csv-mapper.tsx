@@ -145,18 +145,15 @@ export function CSVMapper({
         </div>
       </div>
 
-      {/* Mobile: Confidence Score (collapsible) */}
-      <div className="lg:hidden">
+      {/* Confidence Score + Dependencies (side by side above mapping) */}
+      <div className="grid gap-4 md:grid-cols-2">
         <ConfidenceScorePanel score={confidenceScore} />
+        {mappings.length > 0 && <DependencyVisualizer mappings={mappings} />}
       </div>
 
-      {/* Two column layout: Main content + Sidebar (desktop only) */}
-      <div className="grid gap-6 lg:grid-cols-3">
-        {/* Main content column */}
-        <div className="space-y-6 lg:col-span-2">
-
-          {/* Main content tabs */}
-          <Tabs value={activeTab} onValueChange={setActiveTab}>
+      {/* Main content tabs */}
+      <div className="space-y-6">
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="upload">1. Upload CSV</TabsTrigger>
               <TabsTrigger value="mapping" disabled={!csvData}>
@@ -217,33 +214,17 @@ export function CSVMapper({
             </TabsContent>
           </Tabs>
 
-          {/* Action buttons */}
-          <div className="flex justify-between rounded-lg border bg-muted/50 p-4">
-            <Button variant="outline" onClick={onCancel}>
-              Cancel
-            </Button>
-            <Button onClick={handleSave} disabled={!canSave}>
-              <IconDeviceFloppy className="mr-2 h-4 w-4" />
-              Save Mapping Profile
-            </Button>
-          </div>
-        </div>
-
-        {/* Right sidebar: Confidence Score + Dependencies (desktop only, sticky) */}
-        <div className="hidden lg:block lg:col-span-1">
-          <div className="sticky top-6 space-y-4">
-            <ConfidenceScorePanel score={confidenceScore} />
-            {mappings.length > 0 && <DependencyVisualizer mappings={mappings} />}
-          </div>
+        {/* Action buttons */}
+        <div className="flex justify-between rounded-lg border bg-muted/50 p-4">
+          <Button variant="outline" onClick={onCancel}>
+            Cancel
+          </Button>
+          <Button onClick={handleSave} disabled={!canSave}>
+            <IconDeviceFloppy className="mr-2 h-4 w-4" />
+            Save Mapping Profile
+          </Button>
         </div>
       </div>
-
-      {/* Mobile: Dependencies (shown after main content) */}
-      {mappings.length > 0 && (
-        <div className="lg:hidden">
-          <DependencyVisualizer mappings={mappings} />
-        </div>
-      )}
     </div>
   );
 }
