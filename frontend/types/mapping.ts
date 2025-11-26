@@ -100,6 +100,8 @@ export interface RemoveUnitsConfig {
 export interface ReplaceTextConfig {
   find: string | RegExp;
   replace: string;
+  useRegex?: boolean;
+  caseSensitive?: boolean;
 }
 
 export interface DefaultValueConfig {

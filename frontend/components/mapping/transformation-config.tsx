@@ -260,7 +260,6 @@ function TransformationTypeConfig({
           <div className="space-y-1">
             <Label>Input Format</Label>
             <Input
-              size="sm"
               placeholder="e.g., MM/DD/YYYY or DD-MM-YYYY"
               value={transformation.config?.inputFormat || ""}
               onChange={(e) => updateConfig("inputFormat", e.target.value)}
@@ -272,7 +271,6 @@ function TransformationTypeConfig({
           <div className="space-y-1">
             <Label>Output Format (optional)</Label>
             <Input
-              size="sm"
               placeholder="Leave empty for ISO format"
               value={transformation.config?.outputFormat || ""}
               onChange={(e) => updateConfig("outputFormat", e.target.value)}
@@ -286,7 +284,6 @@ function TransformationTypeConfig({
         <div className="space-y-1">
           <Label>Units to Remove</Label>
           <Input
-            size="sm"
             placeholder="e.g., lbs, kg, hrs (comma-separated)"
             value={(transformation.config?.units || []).join(", ")}
             onChange={(e) =>
@@ -305,7 +302,6 @@ function TransformationTypeConfig({
           <div className="space-y-1">
             <Label>Find</Label>
             <Input
-              size="sm"
               placeholder="Text to find"
               value={transformation.config?.find || ""}
               onChange={(e) => updateConfig("find", e.target.value)}
@@ -314,7 +310,6 @@ function TransformationTypeConfig({
           <div className="space-y-1">
             <Label>Replace With</Label>
             <Input
-              size="sm"
               placeholder="Replacement text (empty to remove)"
               value={transformation.config?.replacement || ""}
               onChange={(e) => updateConfig("replacement", e.target.value)}
@@ -346,7 +341,6 @@ function TransformationTypeConfig({
         <div className="space-y-1">
           <Label>Default Value</Label>
           <Input
-            size="sm"
             placeholder="Value to use when field is empty"
             value={transformation.config?.value || ""}
             onChange={(e) => updateConfig("value", e.target.value)}

@@ -119,7 +119,8 @@ function extractBusinessRuleDependencies(
 
   if (rule.type === "lookup" && rule.config) {
     // Lookup rule depends on the source field
-    const sourceField = rule.config.sourceField;
+    const lookupConfig = rule.config as any; // Type assertion for lookup config
+    const sourceField = lookupConfig.sourceField;
     if (sourceField) {
       const mapping = allMappings.find((m) => m.csvColumn === sourceField);
       if (mapping && mapping.ontologyEntity && mapping.ontologyProperty) {
@@ -130,7 +131,8 @@ function extractBusinessRuleDependencies(
     }
   } else if (rule.type === "conditional" && rule.config) {
     // Conditional rule depends on fields in conditions
-    rule.config.conditions?.forEach((condition) => {
+    const conditionalConfig = rule.config as any; // Type assertion for conditional config
+    conditionalConfig.conditions?.forEach((condition: any) => {
       const field = condition.field;
       if (field) {
         const mapping = allMappings.find((m) => m.csvColumn === field);

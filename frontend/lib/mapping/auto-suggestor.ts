@@ -1,7 +1,22 @@
 // lib/mapping/auto-suggester.ts
 
-import { MANUFACTURING_ONTOLOGY } from "@/lib/ontology/schema";
-import { FieldMapping } from "@/types/mapping";
+import { ONTOLOGY_SCHEMA } from "@/lib/ontology-schema";
+import { FieldMapping, DataType } from "@/types/mapping";
+
+function normalizeDataType(type: string): DataType {
+  switch (type) {
+    case "decimal":
+    case "number":
+      return "number";
+    case "datetime":
+    case "date":
+      return "date";
+    case "boolean":
+      return "boolean";
+    default:
+      return "string";
+  }
+}
 
 export function suggestMappings(
   columns: string[],
@@ -24,7 +39,7 @@ export function suggestMappings(
       transformations: match.transformations,
       isRequired: fieldDef.required || false,
       isMapped: match.column !== null,
-      dataType: fieldDef.type,
+      dataType: normalizeDataType(fieldDef.type),
       sampleValues: match.column
         ? sampleData.slice(0, 3).map((row) => row[match.column!])
         : [],

@@ -207,7 +207,7 @@ function replaceTextTransformation(
   if (!value || value.trim() === "") return value;
   if (!config?.find) return value;
 
-  const replacement = config.replacement || "";
+  const replacement = config.replace || "";
 
   if (config.useRegex) {
     try {

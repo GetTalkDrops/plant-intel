@@ -1,4 +1,4 @@
-import { MappingRow, MappingTemplate } from "@/types/mapping";
+import { PropertyMapping, MappingProfile } from "@/types/mapping";
 import { ONTOLOGY_SCHEMA } from "./ontology-schema";
 
 export interface ValidationResult {
@@ -10,7 +10,7 @@ export interface ValidationResult {
 /**
  * Validate a single mapping row
  */
-export function validateMappingRow(row: MappingRow): ValidationResult {
+export function validateMappingRow(row: PropertyMapping): ValidationResult {
   const errors: string[] = [];
   const warnings: string[] = [];
 
@@ -41,7 +41,7 @@ export function validateMappingRow(row: MappingRow): ValidationResult {
       errors.push(`Unknown property ${row.ontologyProperty} on entity ${row.ontologyEntity}`);
     } else {
       // Check if required property is mapped
-      if (property.required && row.status !== "mapped") {
+      if (property.required && !row.isMapped) {
         warnings.push(`${property.displayName} is a required property`);
       }
     }
@@ -57,7 +57,7 @@ export function validateMappingRow(row: MappingRow): ValidationResult {
 /**
  * Validate entire mapping template
  */
-export function validateMappingTemplate(template: MappingTemplate): ValidationResult {
+export function validateMappingTemplate(template: MappingProfile): ValidationResult {
   const errors: string[] = [];
   const warnings: string[] = [];
 
@@ -122,7 +122,7 @@ export function validateMappingTemplate(template: MappingTemplate): ValidationRe
 /**
  * Check if a mapping is complete
  */
-export function isMappingComplete(row: MappingRow): boolean {
+export function isMappingComplete(row: PropertyMapping): boolean {
   if (!row.ontologyEntity || !row.ontologyProperty) {
     return false;
   }
