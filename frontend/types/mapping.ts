@@ -283,6 +283,11 @@ export interface MappingProfile {
   usageCount?: number;
   lastUsed?: string;
   successRate?: number;          // % of times auto-mapping worked
+
+  // Phase 3.3: Profile Versioning (prepared for future backend integration)
+  version?: number;              // Version number (1, 2, 3, ...)
+  parentVersionId?: string;      // ID of the version this was cloned from
+  versionNotes?: string;         // What changed in this version
 }
 
 // =============================================================================
