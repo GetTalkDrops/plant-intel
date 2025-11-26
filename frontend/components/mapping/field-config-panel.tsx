@@ -17,6 +17,7 @@ import {
 } from "@/types/mapping";
 import { formatSampleData } from "@/lib/csv-utils";
 import { BusinessRuleConfig } from "./business-rule-config";
+import { TransformationConfig } from "./transformation-config";
 import { useRuleClipboard } from "@/contexts/rule-clipboard-context";
 
 interface FieldConfigPanelProps {
@@ -40,6 +41,9 @@ export function FieldConfigPanel({
   const [businessRule, setBusinessRule] = React.useState<BusinessRule | undefined>(
     mapping.businessRule
   );
+  const [transformations, setTransformations] = React.useState<FieldTransformation[]>(
+    mapping.transformations || []
+  );
   const [hasValidationErrors, setHasValidationErrors] = React.useState(false);
   const { copiedRule, copyRule, pasteRule } = useRuleClipboard();
 
@@ -58,6 +62,7 @@ export function FieldConfigPanel({
     }
     onSave({
       businessRule,
+      transformations,
     });
   };
 
@@ -118,8 +123,13 @@ export function FieldConfigPanel({
                 </Badge>
               )}
             </TabsTrigger>
-            <TabsTrigger value="transformations" disabled>
+            <TabsTrigger value="transformations">
               Data Cleanup
+              {transformations && transformations.length > 0 && (
+                <Badge variant="secondary" className="ml-2 h-4 px-1 text-xs">
+                  {transformations.length}
+                </Badge>
+              )}
             </TabsTrigger>
           </TabsList>
 
@@ -159,9 +169,38 @@ export function FieldConfigPanel({
             </div>
           </TabsContent>
 
-          <TabsContent value="transformations">
-            <div className="rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">
-              Data transformation features (trim, parse dates, etc.) coming soon
+          <TabsContent value="transformations" className="space-y-4">
+            <div className="rounded-lg bg-muted/50 p-3 text-sm">
+              <p className="font-medium">Data Cleanup & Normalization</p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Apply transformations to clean your data before business rules.
+                Transformations run in sequence from top to bottom.
+              </p>
+            </div>
+
+            <TransformationConfig
+              transformations={transformations}
+              sampleValues={mapping.sampleValues}
+              onChange={setTransformations}
+            />
+
+            {/* Examples */}
+            <div className="space-y-2 rounded-lg border p-3 text-xs">
+              <p className="font-medium">Common Examples:</p>
+              <ul className="ml-4 space-y-1 list-disc text-muted-foreground">
+                <li>
+                  <strong>Trim:</strong> Remove leading/trailing whitespace
+                </li>
+                <li>
+                  <strong>Remove Units:</strong> Strip "lbs", "kg" from numeric values
+                </li>
+                <li>
+                  <strong>Parse Date:</strong> Convert "01/15/2024" to ISO format
+                </li>
+                <li>
+                  <strong>Default Value:</strong> Replace empty cells with "N/A"
+                </li>
+              </ul>
             </div>
           </TabsContent>
         </Tabs>
