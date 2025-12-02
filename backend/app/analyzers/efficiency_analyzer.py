@@ -11,10 +11,8 @@ warnings.filterwarnings('ignore')
 
 class EfficiencyAnalyzer:
     def __init__(self):
-        load_dotenv('../.env.local')
-        
-        url = os.getenv("NEXT_PUBLIC_SUPABASE_URL")
-        key = os.getenv("NEXT_PUBLIC_SUPABASE_ANON_KEY")
+        url = os.getenv("SUPABASE_URL")
+        key = os.getenv("SUPABASE_SERVICE_KEY")
         
         if not url or not key:
             raise ValueError("Missing Supabase credentials")

@@ -4,18 +4,18 @@ Replace your existing enhanced_query_router.py with this file
 """
 
 from typing import Dict
-from analyzers.cost_analyzer import CostAnalyzer
-from analyzers.equipment_predictor import EquipmentPredictor
-from analyzers.quality_analyzer import QualityAnalyzer
-from analyzers.efficiency_analyzer import EfficiencyAnalyzer
-from handlers.data_aware_responder import DataAwareResponder
-from ai.conversational_templates import ConversationalTemplates
-from handlers.query_preprocessor import QueryPreprocessor
+from app.analyzers.cost_analyzer import CostAnalyzer
+from app.analyzers.equipment_predictor import EquipmentPredictor
+from app.analyzers.quality_analyzer import QualityAnalyzer
+from app.analyzers.efficiency_analyzer import EfficiencyAnalyzer
+from app.handlers.data_aware_responder import DataAwareResponder
+from app.ai.conversational_templates import ConversationalTemplates
+from app.handlers.query_preprocessor import QueryPreprocessor
 
 # NEW IMPORTS
-from handlers.query_classifier import QueryClassifier
-from handlers.data_query_handler import DataQueryHandler
-from handlers.scenario_handler import ScenarioHandler
+from app.handlers.query_classifier import QueryClassifier
+from app.handlers.data_query_handler import DataQueryHandler
+from app.handlers.scenario_handler import ScenarioHandler
 
 class EnhancedQueryRouter:
     def __init__(self):

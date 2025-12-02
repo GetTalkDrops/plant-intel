@@ -4,8 +4,8 @@ Auto Analysis Orchestrator - Orchestrates automated analysis pipeline
 
 from typing import Dict, Optional, Any
 import logging
-from utils.data_tier_detector import DataTierDetector
-from analyzers.cost_analyzer import CostAnalyzer
+from app.utils.data_tier_detector import DataTierDetector
+from app.analyzers.cost_analyzer import CostAnalyzer
 
 logger = logging.getLogger(__name__)
 
@@ -118,7 +118,7 @@ class AutoAnalysisOrchestrator:
             # Run Equipment Predictor (Tier 2+)
             if tier_formatted in ["Tier 2", "Tier 3", "Tier 4"]:
                 try:
-                    from analyzers.equipment_predictor import EquipmentPredictor
+                    from app.analyzers.equipment_predictor import EquipmentPredictor
                     equipment_predictor = EquipmentPredictor()
 
                     equipment_config = {
@@ -155,7 +155,7 @@ class AutoAnalysisOrchestrator:
             # Run Quality Analyzer (Tier 2+)
             if tier_formatted in ["Tier 2", "Tier 3", "Tier 4"]:
                 try:
-                    from analyzers.quality_analyzer import QualityAnalyzer
+                    from app.analyzers.quality_analyzer import QualityAnalyzer
                     quality_analyzer = QualityAnalyzer()
 
                     quality_config = {
@@ -192,7 +192,7 @@ class AutoAnalysisOrchestrator:
             # Run Efficiency Analyzer (Tier 4)
             if tier_formatted == "Tier 4":
                 try:
-                    from analyzers.efficiency_analyzer import EfficiencyAnalyzer
+                    from app.analyzers.efficiency_analyzer import EfficiencyAnalyzer
                     efficiency_analyzer = EfficiencyAnalyzer()
 
                     efficiency_config = {

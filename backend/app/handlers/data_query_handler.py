@@ -10,11 +10,10 @@ from typing import Dict, List, Optional
 
 class DataQueryHandler:
     """Handles data queries - answers specific questions about metrics"""
-    
+
     def __init__(self):
-        load_dotenv('../.env.local')
-        url = os.getenv("NEXT_PUBLIC_SUPABASE_URL")
-        key = os.getenv("NEXT_PUBLIC_SUPABASE_ANON_KEY")
+        url = os.getenv("SUPABASE_URL")
+        key = os.getenv("SUPABASE_SERVICE_KEY")
         self.supabase: Client = create_client(url, key)
     
     def handle_query(self, query: str, facility_id: int, metric_type: str) -> Dict:

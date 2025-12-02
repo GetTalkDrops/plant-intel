@@ -13,8 +13,8 @@ from datetime import datetime
 from io import StringIO
 from dataclasses import dataclass, asdict
 
-from utils.flexible_column_mapper import FlexibleColumnMapper
-from orchestrators.auto_analysis_orchestrator import AutoAnalysisOrchestrator
+from app.utils.flexible_column_mapper import FlexibleColumnMapper
+from app.orchestrators.auto_analysis_orchestrator import AutoAnalysisOrchestrator
 from supabase import create_client, Client
 import os
 
@@ -70,10 +70,10 @@ class CsvUploadService:
         
         # Initialize Supabase client
         supabase_url = os.environ.get("SUPABASE_URL")
-        supabase_key = os.environ.get("SUPABASE_KEY")
+        supabase_key = os.environ.get("SUPABASE_SERVICE_KEY")
         
         if not supabase_url or not supabase_key:
-            raise ValueError("SUPABASE_URL and SUPABASE_KEY must be set")
+            raise ValueError("SUPABASE_URL and SUPABASE_SERVICE_KEY must be set")
         
         self.supabase: Client = create_client(supabase_url, supabase_key)
     

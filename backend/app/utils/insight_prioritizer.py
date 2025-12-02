@@ -17,7 +17,7 @@ import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from ai.action_recommender import ActionRecommender
+from app.ai.action_recommender import ActionRecommender
 
 
 class InsightPriority(str, Enum):

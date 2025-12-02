@@ -5,16 +5,14 @@ from typing import Dict
 import os
 from dotenv import load_dotenv
 import warnings
-from analytics.degradation_detector import DegradationDetector
-from analytics.correlation_analyzer import CorrelationAnalyzer
+from app.analytics.degradation_detector import DegradationDetector
+from app.analytics.correlation_analyzer import CorrelationAnalyzer
 warnings.filterwarnings('ignore')
 
 class EquipmentPredictor:
     def __init__(self):
-        load_dotenv('../.env.local')
-        
-        url = os.getenv("NEXT_PUBLIC_SUPABASE_URL")
-        key = os.getenv("NEXT_PUBLIC_SUPABASE_ANON_KEY")
+        url = os.getenv("SUPABASE_URL")
+        key = os.getenv("SUPABASE_SERVICE_KEY")
         
         if not url or not key:
             raise ValueError("Missing Supabase credentials")

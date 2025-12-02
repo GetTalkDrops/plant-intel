@@ -47,7 +47,7 @@ async def analyze_auto(request: AnalyzeRequest):
         }
         
         # Run Cost Analyzer (always)
-        from analyzers import cost_analyzer
+        from app.analyzers import cost_analyzer
         cost_results = cost_analyzer.analyze(
             facility_id=request.facility_id,
             config={
@@ -67,7 +67,7 @@ async def analyze_auto(request: AnalyzeRequest):
         
         # Run Equipment Analyzer (Tier 2+)
         if request.data_tier in ["Tier 2", "Tier 3"]:
-            from analyzers import equipment_predictor
+            from app.analyzers import equipment_predictor
             equipment_results = equipment_predictor.analyze(
                 facility_id=request.facility_id,
                 config={
@@ -94,7 +94,7 @@ async def analyze_auto(request: AnalyzeRequest):
         
         # Run Quality Analyzer (Tier 2+)
         if request.data_tier in ["Tier 2", "Tier 3"]:
-            from analyzers import quality_analyzer
+            from app.analyzers import quality_analyzer
             quality_results = quality_analyzer.analyze(
                 facility_id=request.facility_id,
                 config={
@@ -116,7 +116,7 @@ async def analyze_auto(request: AnalyzeRequest):
         
         # Run Efficiency Analyzer (Tier 3)
         if request.data_tier == "Tier 3":
-            from analyzers import efficiency_analyzer
+            from app.analyzers import efficiency_analyzer
             efficiency_results = efficiency_analyzer.analyze(
                 facility_id=request.facility_id,
                 config={

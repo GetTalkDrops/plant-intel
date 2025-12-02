@@ -4,18 +4,16 @@ from supabase import create_client
 from dotenv import load_dotenv
 import pandas as pd
 import numpy as np
-from ai.pattern_explainer import PatternExplainer
-from analytics.baseline_tracker import BaselineTracker
-from analytics.trend_detector import TrendDetector
-from analytics.degradation_detector import DegradationDetector
-from analytics.correlation_analyzer import CorrelationAnalyzer
+from app.ai.pattern_explainer import PatternExplainer
+from app.analytics.baseline_tracker import BaselineTracker
+from app.analytics.trend_detector import TrendDetector
+from app.analytics.degradation_detector import DegradationDetector
+from app.analytics.correlation_analyzer import CorrelationAnalyzer
 
 class CostAnalyzer:
     def __init__(self):
-        load_dotenv('../.env.local')
-        
-        url = os.getenv("NEXT_PUBLIC_SUPABASE_URL")
-        key = os.getenv("NEXT_PUBLIC_SUPABASE_ANON_KEY")
+        url = os.getenv("SUPABASE_URL")
+        key = os.getenv("SUPABASE_SERVICE_KEY")
         
         if not url or not key:
             raise ValueError("Missing Supabase credentials")

@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
+import { useUser } from "@clerk/nextjs";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { ProfileSelectorCard } from "@/components/mapping/profile-selector-card";
@@ -191,6 +192,15 @@ const mockLastUsed: Record<string, Date> = {
 
 export default function StartNewAnalysisPage() {
   const router = useRouter();
+  const { isLoaded, isSignedIn } = useUser();
+
+  // Redirect to sign-in if not authenticated
+  React.useEffect(() => {
+    if (isLoaded && !isSignedIn) {
+      router.push('/sign-in');
+    }
+  }, [isLoaded, isSignedIn, router]);
+
   const [selectedProfiles, setSelectedProfiles] = React.useState<Set<string>>(
     new Set()
   );
@@ -198,6 +208,15 @@ export default function StartNewAnalysisPage() {
   const [isSheetOpen, setIsSheetOpen] = React.useState(false);
   const [isDragging, setIsDragging] = React.useState(false);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
+
+  // Show loading state while checking auth
+  if (!isLoaded || !isSignedIn) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="text-muted-foreground">Loading...</div>
+      </div>
+    );
+  }
 
   const handleProfileSelect = (profileId: string) => {
     setSelectedProfiles((prev) => {

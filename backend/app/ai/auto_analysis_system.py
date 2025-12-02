@@ -1,7 +1,7 @@
-from analyzers.cost_analyzer import CostAnalyzer
-from analyzers.equipment_predictor import EquipmentPredictor
-from analyzers.quality_analyzer import QualityAnalyzer
-from analyzers.efficiency_analyzer import EfficiencyAnalyzer
+from app.analyzers.cost_analyzer import CostAnalyzer
+from app.analyzers.equipment_predictor import EquipmentPredictor
+from app.analyzers.quality_analyzer import QualityAnalyzer
+from app.analyzers.efficiency_analyzer import EfficiencyAnalyzer
 from typing import Dict
 
 class ConversationalAutoAnalysis:
