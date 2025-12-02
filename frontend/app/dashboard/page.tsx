@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { DataTable } from "@/components/data-table";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { ProfileSelectorCard } from "@/components/mapping/profile-selector-card";
 import {
@@ -11,11 +11,11 @@ import {
   SheetDescription,
   SheetHeader,
   SheetTitle,
-  SheetTrigger,
 } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
-import { IconUpload, IconAlertCircle } from "@tabler/icons-react";
+import { IconUpload, IconAlertCircle, IconMap } from "@tabler/icons-react";
 import { MappingProfile } from "@/types/mapping";
+import { cn } from "@/lib/utils";
 
 // Sample data for recent analyses
 const analysisData = [
@@ -196,6 +196,7 @@ export default function StartNewAnalysisPage() {
   );
   const [uploadedFile, setUploadedFile] = React.useState<File | null>(null);
   const [isSheetOpen, setIsSheetOpen] = React.useState(false);
+  const [isDragging, setIsDragging] = React.useState(false);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   const handleProfileSelect = (profileId: string) => {
@@ -211,7 +212,7 @@ export default function StartNewAnalysisPage() {
   };
 
   const handleViewDetails = (profileId: string) => {
-    router.push(`/dashboard/mapping-library/${profileId}`);
+    router.push(`/dashboard/maps/${profileId}`);
   };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -226,6 +227,27 @@ export default function StartNewAnalysisPage() {
     fileInputRef.current?.click();
   };
 
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+
+    const files = e.dataTransfer.files;
+    if (files.length > 0 && files[0].type === "text/csv") {
+      setUploadedFile(files[0]);
+      setIsSheetOpen(true);
+    }
+  };
+
   const handleUpload = async () => {
     if (!uploadedFile || selectedProfiles.size === 0) return;
 
@@ -236,13 +258,13 @@ export default function StartNewAnalysisPage() {
       profiles: Array.from(selectedProfiles),
     });
 
-    // For now, just close the sheet
+    // For now, just close the sheet and navigate to mock analysis
     setIsSheetOpen(false);
     setUploadedFile(null);
     setSelectedProfiles(new Set());
 
-    // TODO: Navigate to analysis page when backend is ready
-    // router.push("/dashboard/analysis/new-id");
+    // Navigate to analysis page (using mock ID for now)
+    router.push("/dashboard/analysis/analysis-1");
   };
 
   const calculateMappingCoverage = (profile: MappingProfile): number => {
@@ -251,80 +273,127 @@ export default function StartNewAnalysisPage() {
   };
 
   return (
-    <div className="flex flex-col gap-6">
-      {/* Upload Section */}
-      <div className="px-4 lg:px-6">
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h2 className="text-2xl font-bold">Start New Analysis</h2>
-            <p className="text-muted-foreground">
-              Upload your data file and select mapping profiles
-            </p>
-          </div>
-        </div>
-
-        {/* Upload Area */}
-        <div
-          className="rounded-lg border border-dashed p-8 text-center cursor-pointer hover:border-primary transition-colors"
-          onClick={handleBrowseFiles}
-        >
-          <IconUpload className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-          <h3 className="text-lg font-semibold mb-2">Upload Data File</h3>
-          <p className="text-sm text-muted-foreground mb-4">
-            Drag CSV file here or click to browse
-          </p>
-          <Button variant="outline" onClick={(e) => e.stopPropagation()}>
-            Browse Files
-          </Button>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept=".csv"
-            className="hidden"
-            onChange={handleFileSelect}
-          />
-        </div>
-      </div>
-
-      {/* Available Mapping Profiles */}
-      <div className="px-4 lg:px-6">
-        <div className="mb-4">
-          <h3 className="text-lg font-semibold">Available Mapping Profiles</h3>
-          <p className="text-sm text-muted-foreground">
-            Select one or more profiles to apply to your upload
-          </p>
-        </div>
-
-        {mockProfiles.length > 0 ? (
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {mockProfiles.map((profile) => (
-              <ProfileSelectorCard
-                key={profile.id}
-                profile={profile}
-                isSelected={selectedProfiles.has(profile.id)}
-                onSelect={handleProfileSelect}
-                onViewDetails={handleViewDetails}
-                lastUsed={mockLastUsed[profile.id]}
-                mappingCoverage={calculateMappingCoverage(profile)}
-              />
-            ))}
-          </div>
-        ) : (
-          <div className="rounded-lg border border-dashed p-8 text-center">
-            <p className="text-muted-foreground mb-4">
-              No mapping profiles available. Create one to get started.
-            </p>
-            <Button onClick={() => router.push("/dashboard/mapping-library/new")}>
-              Create Profile
+    <div className="flex flex-col h-full">
+      {/* Hero Upload Section - Prominent */}
+      <div className="px-4 lg:px-6 py-8 border-b bg-gradient-to-b from-muted/50 to-background">
+        <div className="max-w-3xl mx-auto">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h1 className="text-3xl font-bold mb-2">Manufacturing Intelligence</h1>
+              <p className="text-lg text-muted-foreground">
+                Upload your production data to unlock insights and optimize operations
+              </p>
+            </div>
+            <Button variant="outline" asChild>
+              <Link href="/dashboard/maps">
+                <IconMap className="mr-2 h-4 w-4" />
+                Manage Maps
+              </Link>
             </Button>
           </div>
-        )}
+
+          {/* Large Upload Area */}
+          <div
+            className={cn(
+              "rounded-xl border-2 border-dashed p-12 text-center cursor-pointer transition-all",
+              isDragging
+                ? "border-primary bg-primary/10"
+                : "hover:border-primary hover:bg-muted/30"
+            )}
+            onClick={handleBrowseFiles}
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+          >
+            <IconUpload className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
+            <h3 className="text-xl font-semibold mb-2">Upload Production Data</h3>
+            <p className="text-muted-foreground mb-6 max-w-md mx-auto">
+              Drop your CSV file here or click to browse. We'll analyze work orders, costs, and operations automatically.
+            </p>
+            <Button size="lg" onClick={(e) => e.stopPropagation()}>
+              <IconUpload className="mr-2 h-5 w-5" />
+              Choose File
+            </Button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".csv"
+              className="hidden"
+              onChange={handleFileSelect}
+            />
+          </div>
+        </div>
       </div>
 
-      {/* Recent Analyses Table */}
-      <div className="px-4 lg:px-6">
-        <h3 className="text-lg font-semibold mb-4">Recent Analyses</h3>
-        <DataTable data={analysisData} />
+      {/* Two Column Layout */}
+      <div className="flex-1 overflow-auto">
+        <div className="grid lg:grid-cols-[1fr,400px] gap-6 px-4 lg:px-6 py-6">
+          {/* Main Content - Available Profiles */}
+          <div className="space-y-6">
+            <div>
+              <h3 className="text-lg font-semibold mb-2">Your Mapping Profiles</h3>
+              <p className="text-sm text-muted-foreground">
+                Select profiles to apply when you upload data
+              </p>
+            </div>
+
+            {mockProfiles.length > 0 ? (
+              <div className="grid gap-4 md:grid-cols-2">
+                {mockProfiles.map((profile) => (
+                  <ProfileSelectorCard
+                    key={profile.id}
+                    profile={profile}
+                    isSelected={selectedProfiles.has(profile.id)}
+                    onSelect={handleProfileSelect}
+                    onViewDetails={handleViewDetails}
+                    lastUsed={mockLastUsed[profile.id]}
+                    mappingCoverage={calculateMappingCoverage(profile)}
+                  />
+                ))}
+              </div>
+            ) : (
+              <div className="rounded-lg border border-dashed p-8 text-center">
+                <p className="text-muted-foreground mb-4">
+                  No mapping profiles available. Create one to get started.
+                </p>
+                <Button onClick={() => router.push("/dashboard/mapping-library/new")}>
+                  Create Profile
+                </Button>
+              </div>
+            )}
+          </div>
+
+          {/* Sidebar - Recent Analyses */}
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-semibold">Recent Analyses</h3>
+            </div>
+            <div className="space-y-2">
+              {analysisData.slice(0, 5).map((analysis) => (
+                <div
+                  key={analysis.id}
+                  className="rounded-lg border bg-card p-3 hover:bg-muted/50 cursor-pointer transition-colors"
+                  onClick={() => router.push("/dashboard/analysis/analysis-1")}
+                >
+                  <div className="flex items-start justify-between gap-2 mb-2">
+                    <h4 className="font-medium text-sm line-clamp-1">{analysis.header}</h4>
+                    <Badge
+                      variant={analysis.status === "Done" ? "secondary" : "default"}
+                      className="text-xs"
+                    >
+                      {analysis.status}
+                    </Badge>
+                  </div>
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <span>{analysis.type}</span>
+                    <span>•</span>
+                    <span>{analysis.reviewer}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Upload Sheet */}
