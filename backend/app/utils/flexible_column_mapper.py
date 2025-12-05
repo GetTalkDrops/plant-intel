@@ -238,7 +238,7 @@ class FlexibleColumnMapper:
                     transformed_row[supabase_col] = row[csv_col]
             
             # Add default values for system fields
-            transformed_row['facility_id'] = 1  # Can be parameterized
+            transformed_row['org_id'] = 1  # Can be parameterized
             transformed_row['demo_mode'] = False  # Real user data
             
             transformed_data.append(transformed_row)

@@ -21,7 +21,7 @@ class QualityAnalyzer:
         self.degradation_detector = DegradationDetector(self.supabase)
         self.correlation_analyzer = CorrelationAnalyzer(self.supabase)
     
-    def analyze_quality_patterns(self, facility_id: int = 1, batch_id: str = None, config: dict = None) -> Dict:
+    def analyze_quality_patterns(self, org_id: int = 1, batch_id: str = None, config: dict = None) -> Dict:
         """Analyze quality patterns with breakdown, pattern detection, and drift analysis"""
         
         # Extract config or use defaults
@@ -38,7 +38,7 @@ class QualityAnalyzer:
             'moderate': 5
         })
         
-        query = self.supabase.table("work_orders").select("*").eq("facility_id", facility_id)
+        query = self.supabase.table("work_orders").select("*").eq("org_id", org_id)
 
         if batch_id:
             query = query.eq("uploaded_csv_batch", batch_id)
@@ -46,7 +46,7 @@ class QualityAnalyzer:
             # Get most recent batch if no batch_id specified
             recent_batch = self.supabase.table("work_orders")\
                 .select("uploaded_csv_batch")\
-                .eq("facility_id", facility_id)\
+                .eq("org_id", org_id)\
                 .order("uploaded_csv_batch")\
                 .execute()
             
@@ -90,14 +90,14 @@ class QualityAnalyzer:
                     
                     # Add quality drift analysis (30-day trend)
                     drift = self.degradation_detector.detect_quality_drift(
-                        facility_id, material_code, window_days=30
+                        org_id, material_code, window_days=30
                     )
                     
                     # Add correlation analysis if drifting
                     correlations = []
                     if drift:
                         correlations = self.correlation_analyzer.find_quality_correlations(
-                            facility_id, material_code,
+                            org_id, material_code,
                             inflection_date=drift.get('inflection_date'),
                             window_days=30
                         )

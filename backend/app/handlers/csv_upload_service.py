@@ -45,7 +45,7 @@ class UploadResult:
     """Final result of upload process"""
     success: bool
     rows_inserted: int = 0
-    facility_id: Optional[int] = None
+    org_id: Optional[int] = None
     demo_mode: bool = False
     batch_id: Optional[str] = None
     mapping_used: Optional[Dict[str, str]] = None
@@ -99,7 +99,7 @@ class CsvUploadService:
         try:
             # Determine facility and demo mode
             is_demo = self._is_demo_account(user_email)
-            facility_id = 1 if is_demo else 2  # Demo=1, Real=2
+            org_id = 1 if is_demo else 2  # Demo=1, Real=2
             
             # Step 1: Parse CSV
             parsed = self._parse_csv(file_content)
@@ -116,7 +116,7 @@ class CsvUploadService:
                 return UploadResult(
                     success=False,
                     error=validation.error_message,
-                    facility_id=facility_id,
+                    org_id=org_id,
                     demo_mode=is_demo
                 )
             
@@ -124,7 +124,7 @@ class CsvUploadService:
             transformed = self._transform_data(
                 parsed.rows,
                 mapping_result['mapping'],
-                facility_id,
+                org_id,
                 is_demo,
                 filename
             )
@@ -143,14 +143,14 @@ class CsvUploadService:
                 return UploadResult(
                     success=False,
                     error=store_result['error'],
-                    facility_id=facility_id,
+                    org_id=org_id,
                     demo_mode=is_demo,
                     batch_id=batch_id
                 )
             
             # Step 6: Run auto-analysis
             auto_analysis = self.orchestrator.analyze(
-                facility_id=facility_id,
+                org_id=org_id,
                 batch_id=batch_id,
                 csv_headers=parsed.headers,
                 config=None  # Will use facility defaults
@@ -162,7 +162,7 @@ class CsvUploadService:
             return UploadResult(
                 success=True,
                 rows_inserted=len(transformed),
-                facility_id=facility_id,
+                org_id=org_id,
                 demo_mode=is_demo,
                 batch_id=batch_id,
                 mapping_used=mapping_result['mapping'],
@@ -313,7 +313,7 @@ class CsvUploadService:
         self,
         rows: List[Dict],
         mapping: Dict[str, str],
-        facility_id: int,
+        org_id: int,
         demo_mode: bool,
         filename: str
     ) -> List[Dict]:
@@ -323,7 +323,7 @@ class CsvUploadService:
         Args:
             rows: Parsed CSV rows
             mapping: Column mapping
-            facility_id: Facility ID
+            org_id: Facility ID
             demo_mode: Whether this is demo data
             filename: Original filename for batch tracking
             
@@ -335,7 +335,7 @@ class CsvUploadService:
         
         for i, row in enumerate(rows, 1):
             work_order = {
-                'facility_id': facility_id,
+                'org_id': org_id,
                 'demo_mode': demo_mode,
                 'uploaded_csv_batch': batch_id,
                 'work_order_number': f"UPLOAD-{batch_id}-{i}"  # Default
@@ -402,7 +402,7 @@ class CsvUploadService:
                 }
             
             # Save mapping for reuse
-            self._save_mapping(user_email, filename, mapping, data[0]['facility_id'])
+            self._save_mapping(user_email, filename, mapping, data[0]['org_id'])
             
             return {
                 'success': True,
@@ -420,7 +420,7 @@ class CsvUploadService:
         user_email: str,
         filename: str,
         mapping: Dict[str, str],
-        facility_id: int
+        org_id: int
     ):
         """Save mapping configuration for future use"""
         try:
@@ -436,7 +436,7 @@ class CsvUploadService:
             
             mapping_data = {
                 'user_email': user_email,
-                'facility_id': facility_id,
+                'org_id': org_id,
                 'file_name': filename,
                 'mapping_config': mapping,
                 'header_signature': header_signature,

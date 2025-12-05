@@ -12,7 +12,7 @@ class DegradationDetector:
     def __init__(self, supabase_client):
         self.supabase = supabase_client
     
-    def detect_equipment_degradation(self, facility_id: int, equipment_id: str, 
+    def detect_equipment_degradation(self, org_id: int, equipment_id: str, 
                                      window_days: int = 30) -> Optional[Dict]:
         """
         Detect if equipment performance is degrading over time
@@ -24,7 +24,7 @@ class DegradationDetector:
             
             response = self.supabase.table('work_orders')\
                 .select('actual_labor_hours, upload_timestamp, work_order_number')\
-                .eq('facility_id', facility_id)\
+                .eq('org_id', org_id)\
                 .or_(f'equipment_id.eq.{equipment_id},machine_id.eq.{equipment_id}')\
                 .gte('upload_timestamp', cutoff_date)\
                 .order('upload_timestamp', desc=False)\
@@ -86,7 +86,7 @@ class DegradationDetector:
             logger.error(f"Error detecting equipment degradation: {str(e)}")
             return None
     
-    def detect_cost_trend(self, facility_id: int, material_code: str, 
+    def detect_cost_trend(self, org_id: int, material_code: str, 
                          window_days: int = 30) -> Optional[Dict]:
         """
         Detect if material costs are trending up or down
@@ -97,7 +97,7 @@ class DegradationDetector:
             
             response = self.supabase.table('work_orders')\
                 .select('actual_material_cost, upload_timestamp, supplier_id, work_order_number')\
-                .eq('facility_id', facility_id)\
+                .eq('org_id', org_id)\
                 .eq('material_code', material_code)\
                 .gte('upload_timestamp', cutoff_date)\
                 .order('upload_timestamp', desc=False)\
@@ -160,7 +160,7 @@ class DegradationDetector:
             logger.error(f"Error detecting cost trend: {str(e)}")
             return None
     
-    def detect_quality_drift(self, facility_id: int, material_code: str,
+    def detect_quality_drift(self, org_id: int, material_code: str,
                             window_days: int = 30) -> Optional[Dict]:
         """
         Detect if scrap rates are drifting higher over time
@@ -171,7 +171,7 @@ class DegradationDetector:
             
             response = self.supabase.table('work_orders')\
                 .select('units_scrapped, units_produced, actual_quantity, upload_timestamp, supplier_id, equipment_id, machine_id')\
-                .eq('facility_id', facility_id)\
+                .eq('org_id', org_id)\
                 .eq('material_code', material_code)\
                 .gte('upload_timestamp', cutoff_date)\
                 .order('upload_timestamp', desc=False)\

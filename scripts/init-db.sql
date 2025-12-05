@@ -167,6 +167,91 @@ CREATE INDEX IF NOT EXISTS idx_usage_events_org_id ON usage_events(org_id);
 CREATE INDEX IF NOT EXISTS idx_usage_events_created_at ON usage_events(created_at DESC);
 
 -- ============================================================================
+-- Work Orders Table
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS work_orders (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    org_id TEXT NOT NULL,
+    batch_id TEXT NOT NULL,
+    work_order_number TEXT NOT NULL,
+    product_name TEXT,
+    product_code TEXT,
+    quantity_planned DECIMAL,
+    quantity_produced DECIMAL,
+    quantity_scrapped DECIMAL DEFAULT 0,
+    start_date TIMESTAMPTZ,
+    end_date TIMESTAMPTZ,
+    status TEXT,
+    machine_id TEXT,
+    operator_id TEXT,
+    labor_hours DECIMAL,
+    material_cost DECIMAL,
+    labor_cost DECIMAL,
+    overhead_cost DECIMAL,
+    notes TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Indexes for work orders
+CREATE INDEX IF NOT EXISTS idx_work_orders_org_id ON work_orders(org_id);
+CREATE INDEX IF NOT EXISTS idx_work_orders_batch_id ON work_orders(batch_id);
+CREATE INDEX IF NOT EXISTS idx_work_orders_work_order_number ON work_orders(work_order_number);
+CREATE INDEX IF NOT EXISTS idx_work_orders_product_code ON work_orders(product_code);
+CREATE INDEX IF NOT EXISTS idx_work_orders_machine_id ON work_orders(machine_id);
+CREATE INDEX IF NOT EXISTS idx_work_orders_start_date ON work_orders(start_date DESC);
+
+-- ============================================================================
+-- CSV Mappings Table
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS csv_mappings (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    org_id TEXT NOT NULL,
+    profile_id UUID REFERENCES mapping_profiles(id) ON DELETE CASCADE,
+    batch_id TEXT NOT NULL,
+    source_column TEXT NOT NULL,
+    target_variable TEXT NOT NULL,
+    transformation TEXT,
+    confidence DECIMAL,
+    validated BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Indexes for csv mappings
+CREATE INDEX IF NOT EXISTS idx_csv_mappings_org_id ON csv_mappings(org_id);
+CREATE INDEX IF NOT EXISTS idx_csv_mappings_profile_id ON csv_mappings(profile_id);
+CREATE INDEX IF NOT EXISTS idx_csv_mappings_batch_id ON csv_mappings(batch_id);
+CREATE INDEX IF NOT EXISTS idx_csv_mappings_target_variable ON csv_mappings(target_variable);
+
+-- ============================================================================
+-- Facility Baselines Table
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS facility_baselines (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    org_id TEXT NOT NULL,
+    metric_name TEXT NOT NULL,
+    metric_category TEXT NOT NULL CHECK (metric_category IN ('cost', 'quality', 'efficiency', 'equipment')),
+    baseline_value DECIMAL NOT NULL,
+    unit TEXT,
+    sample_size INTEGER,
+    confidence_level DECIMAL,
+    calculation_method TEXT,
+    calculated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    valid_from TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    valid_until TIMESTAMPTZ,
+    notes TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    UNIQUE(org_id, metric_name, metric_category)
+);
+
+-- Indexes for facility baselines
+CREATE INDEX IF NOT EXISTS idx_facility_baselines_org_id ON facility_baselines(org_id);
+CREATE INDEX IF NOT EXISTS idx_facility_baselines_metric_category ON facility_baselines(metric_category);
+CREATE INDEX IF NOT EXISTS idx_facility_baselines_metric_name ON facility_baselines(metric_name);
+CREATE INDEX IF NOT EXISTS idx_facility_baselines_valid_from ON facility_baselines(valid_from DESC);
+
+-- ============================================================================
 -- Row Level Security (RLS) Policies
 -- NOTE: These will be applied in Supabase, not in local Postgres
 -- ============================================================================
@@ -178,9 +263,24 @@ CREATE INDEX IF NOT EXISTS idx_usage_events_created_at ON usage_events(created_a
 --   FOR SELECT USING (org_id = current_setting('app.current_org_id', true));
 --
 -- Repeat for: analyses, chat_messages, customers, analyzer_configs,
---            subscriptions, usage_events
+--            subscriptions, usage_events, work_orders, csv_mappings,
+--            facility_baselines
 --
 -- audit_logs is read-only for admins only
+--
+-- Example RLS policies for new tables:
+--
+-- ALTER TABLE work_orders ENABLE ROW LEVEL SECURITY;
+-- CREATE POLICY "Users can access own org work orders" ON work_orders
+--   FOR ALL USING (org_id = current_setting('app.current_org_id', true));
+--
+-- ALTER TABLE csv_mappings ENABLE ROW LEVEL SECURITY;
+-- CREATE POLICY "Users can access own org csv mappings" ON csv_mappings
+--   FOR ALL USING (org_id = current_setting('app.current_org_id', true));
+--
+-- ALTER TABLE facility_baselines ENABLE ROW LEVEL SECURITY;
+-- CREATE POLICY "Users can access own org facility baselines" ON facility_baselines
+--   FOR ALL USING (org_id = current_setting('app.current_org_id', true));
 
 -- ============================================================================
 -- Triggers for updated_at
@@ -205,4 +305,10 @@ CREATE TRIGGER update_analyzer_configs_updated_at BEFORE UPDATE ON analyzer_conf
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 CREATE TRIGGER update_subscriptions_updated_at BEFORE UPDATE ON subscriptions
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_work_orders_updated_at BEFORE UPDATE ON work_orders
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_facility_baselines_updated_at BEFORE UPDATE ON facility_baselines
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();

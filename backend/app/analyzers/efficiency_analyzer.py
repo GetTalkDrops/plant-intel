@@ -34,11 +34,11 @@ class EfficiencyAnalyzer:
         ]
         return np.array([features])
     
-    def train_model(self, facility_id: int = 1, batch_id: str = None, labor_rate: float = 200):
+    def train_model(self, org_id: int = 1, batch_id: str = None, labor_rate: float = 200):
         """Train the efficiency prediction model"""
         query = self.supabase.table('work_orders')\
             .select('*')\
-            .eq('facility_id', facility_id)\
+            .eq('org_id', org_id)\
             .eq('demo_mode', True)
         
         if batch_id:
@@ -109,7 +109,7 @@ class EfficiencyAnalyzer:
         
         return True
     
-    def analyze_efficiency_patterns(self, facility_id: int = 1, batch_id: str = None, config: dict = None) -> Dict:
+    def analyze_efficiency_patterns(self, org_id: int = 1, batch_id: str = None, config: dict = None) -> Dict:
         """Analyze efficiency patterns with breakdown"""
         
         # Extract config or use defaults
@@ -120,11 +120,11 @@ class EfficiencyAnalyzer:
         scrap_cost_per_unit = config.get('scrap_cost_per_unit', 75)
         
         if not self.is_trained:
-            self.train_model(facility_id, batch_id, labor_rate)
+            self.train_model(org_id, batch_id, labor_rate)
         
         query = self.supabase.table('work_orders')\
             .select('*')\
-            .eq('facility_id', facility_id)\
+            .eq('org_id', org_id)\
             .eq('demo_mode', True)
         
         if batch_id:

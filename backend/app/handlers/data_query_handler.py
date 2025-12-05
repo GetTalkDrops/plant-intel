@@ -16,7 +16,7 @@ class DataQueryHandler:
         key = os.getenv("SUPABASE_SERVICE_KEY")
         self.supabase: Client = create_client(url, key)
     
-    def handle_query(self, query: str, facility_id: int, metric_type: str) -> Dict:
+    def handle_query(self, query: str, org_id: int, metric_type: str) -> Dict:
         """Main entry point for data queries"""
         
         # Route to specific handler based on metric type
@@ -30,15 +30,15 @@ class DataQueryHandler:
         }
         
         handler = handlers.get(metric_type, self._handle_general_metric)
-        return handler(query, facility_id)
+        return handler(query, org_id)
     
-    def _handle_labor_rate(self, query: str, facility_id: int) -> Dict:
+    def _handle_labor_rate(self, query: str, org_id: int) -> Dict:
         """Calculate and return labor rate information"""
         
         # Fetch work orders with labor data
         response = self.supabase.table('work_orders')\
             .select('actual_labor_hours, actual_labor_cost, work_order_number, operation_type')\
-            .eq('facility_id', facility_id)\
+            .eq('org_id', org_id)\
             .not_.is_('actual_labor_hours', 'null')\
             .not_.is_('actual_labor_cost', 'null')\
             .gt('actual_labor_hours', 0)\
@@ -97,12 +97,12 @@ class DataQueryHandler:
             'total_impact': 0
         }
     
-    def _handle_scrap_rate(self, query: str, facility_id: int) -> Dict:
+    def _handle_scrap_rate(self, query: str, org_id: int) -> Dict:
         """Calculate scrap rate information"""
         
         response = self.supabase.table('work_orders')\
             .select('units_scrapped, quantity_produced, work_order_number, material_code')\
-            .eq('facility_id', facility_id)\
+            .eq('org_id', org_id)\
             .not_.is_('units_scrapped', 'null')\
             .not_.is_('quantity_produced', 'null')\
             .gt('quantity_produced', 0)\
@@ -146,12 +146,12 @@ class DataQueryHandler:
             'total_impact': 0
         }
     
-    def _handle_efficiency_rate(self, query: str, facility_id: int) -> Dict:
+    def _handle_efficiency_rate(self, query: str, org_id: int) -> Dict:
         """Calculate efficiency metrics"""
         
         response = self.supabase.table('work_orders')\
             .select('standard_hours, actual_labor_hours, work_order_number')\
-            .eq('facility_id', facility_id)\
+            .eq('org_id', org_id)\
             .not_.is_('standard_hours', 'null')\
             .not_.is_('actual_labor_hours', 'null')\
             .gt('standard_hours', 0)\
@@ -198,12 +198,12 @@ class DataQueryHandler:
             'total_impact': 0
         }
     
-    def _handle_cost_metric(self, query: str, facility_id: int) -> Dict:
+    def _handle_cost_metric(self, query: str, org_id: int) -> Dict:
         """Handle general cost-related queries"""
         
         response = self.supabase.table('work_orders')\
             .select('actual_total_cost, work_order_number, operation_type')\
-            .eq('facility_id', facility_id)\
+            .eq('org_id', org_id)\
             .not_.is_('actual_total_cost', 'null')\
             .execute()
         
@@ -235,12 +235,12 @@ class DataQueryHandler:
             'total_impact': 0
         }
     
-    def _handle_variance_metric(self, query: str, facility_id: int) -> Dict:
+    def _handle_variance_metric(self, query: str, org_id: int) -> Dict:
         """Handle variance-related queries"""
         
         response = self.supabase.table('work_orders')\
             .select('standard_hours, actual_labor_hours, planned_material_cost, actual_material_cost, work_order_number')\
-            .eq('facility_id', facility_id)\
+            .eq('org_id', org_id)\
             .execute()
         
         if not response.data:
@@ -280,7 +280,7 @@ class DataQueryHandler:
             'total_impact': 0
         }
     
-    def _handle_general_metric(self, query: str, facility_id: int) -> Dict:
+    def _handle_general_metric(self, query: str, org_id: int) -> Dict:
         """Handle general/unknown metric queries"""
         
         # Try to extract what they're asking about

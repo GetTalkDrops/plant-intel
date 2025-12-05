@@ -5,16 +5,16 @@ Handles JWT validation and user context extraction
 
 import os
 import logging
-from typing import Dict, Any, Optional, Callable
+from typing import Dict, Any, Optional, Callable, Annotated
 from functools import wraps
 
 import jwt
-from fastapi import Request, HTTPException, status
+from fastapi import Request, HTTPException, status, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
 logger = logging.getLogger(__name__)
 
-security = HTTPBearer()
+security = HTTPBearer(auto_error=False)
 
 
 class AuthMiddleware:
@@ -248,3 +248,61 @@ def get_optional_user_context(request: Request) -> Optional[Dict[str, Any]]:
         return auth_middleware.get_user_context(request)
     except HTTPException:
         return None
+
+
+# ============================================================================
+# FastAPI Dependency Functions (Recommended Usage)
+# ============================================================================
+
+async def get_current_user(
+    request: Request,
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(security)
+) -> Dict[str, Any]:
+    """
+    FastAPI dependency to get current authenticated user
+
+    Usage:
+        @router.get("/endpoint")
+        async def my_endpoint(user: dict = Depends(get_current_user)):
+            org_id = user["org_id"]
+            user_id = user["user_id"]
+            ...
+    """
+    if not credentials:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Missing authorization credentials",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    # Manually construct auth header for get_user_context
+    # (since we're using the token from HTTPBearer)
+    original_auth_header = request.headers.get("Authorization")
+    request._auth_header_backup = original_auth_header
+
+    return auth_middleware.get_user_context(request)
+
+
+async def get_current_admin(
+    user: Dict[str, Any] = Depends(get_current_user)
+) -> Dict[str, Any]:
+    """
+    FastAPI dependency to require admin role
+
+    Usage:
+        @router.post("/admin/endpoint")
+        async def admin_endpoint(user: dict = Depends(get_current_admin)):
+            ...
+    """
+    if user.get("role") != "admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin access required",
+        )
+
+    return user
+
+
+# Type aliases for cleaner endpoint signatures
+UserContext = Annotated[Dict[str, Any], Depends(get_current_user)]
+AdminContext = Annotated[Dict[str, Any], Depends(get_current_admin)]

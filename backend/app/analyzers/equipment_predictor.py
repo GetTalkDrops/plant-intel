@@ -21,7 +21,7 @@ class EquipmentPredictor:
         self.degradation_detector = DegradationDetector(self.supabase)
         self.correlation_analyzer = CorrelationAnalyzer(self.supabase)
     
-    def predict_failures(self, facility_id: int = 1, batch_id: str = None, config: dict = None) -> Dict:
+    def predict_failures(self, org_id: int = 1, batch_id: str = None, config: dict = None) -> Dict:
         """Predict equipment failures with pattern detection, breakdown analysis, and degradation trends"""
         
         # Extract config or use defaults
@@ -47,7 +47,7 @@ class EquipmentPredictor:
             'minor': 2
         })
         
-        query = self.supabase.table("work_orders").select("*").eq("facility_id", facility_id)
+        query = self.supabase.table("work_orders").select("*").eq("org_id", org_id)
 
         if batch_id:
             query = query.eq("uploaded_csv_batch", batch_id)
@@ -55,7 +55,7 @@ class EquipmentPredictor:
             # Get most recent batch if no batch_id specified
             recent_batch = self.supabase.table("work_orders")\
                 .select("uploaded_csv_batch")\
-                .eq("facility_id", facility_id)\
+                .eq("org_id", org_id)\
                 .order("uploaded_csv_batch")\
                 .execute()
             
@@ -109,14 +109,14 @@ class EquipmentPredictor:
                 
                 # Add degradation analysis (looks at 30-day trend)
                 degradation = self.degradation_detector.detect_equipment_degradation(
-                    facility_id, machine_id, window_days=30
+                    org_id, machine_id, window_days=30
                 )
                 
                 # Add correlation analysis if degrading
                 correlations = []
                 if degradation:
                     correlations = self.correlation_analyzer.find_equipment_correlations(
-                        facility_id, machine_id, window_days=30
+                        org_id, machine_id, window_days=30
                     )
                 
                 if breakdown['total_impact'] > 500 or degradation:

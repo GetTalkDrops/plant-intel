@@ -5,16 +5,18 @@ Analysis Endpoints
 import logging
 import time
 from typing import Optional, Dict, Any
-from fastapi import APIRouter, Request, HTTPException
+from fastapi import APIRouter, Request, HTTPException, Depends
 from pydantic import BaseModel
 
-from app.middleware import require_auth, audit_logger
+from app.middleware import get_current_user, audit_logger
 from app.orchestrators.auto_analysis_orchestrator import AutoAnalysisOrchestrator
+from app.services.analysis_service import AnalysisService
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
 orchestrator = AutoAnalysisOrchestrator()
+analysis_service = AnalysisService()
 
 
 class AnalysisRequest(BaseModel):
@@ -26,11 +28,10 @@ class AnalysisRequest(BaseModel):
 
 
 @router.post("/analyze/auto")
-@require_auth
 async def auto_analyze(
     request: Request,
-    user_context: dict,
-    analysis_request: AnalysisRequest
+    analysis_request: AnalysisRequest,
+    user: dict = Depends(get_current_user)
 ):
     """
     Run comprehensive auto-analysis using the orchestrator
@@ -39,8 +40,8 @@ async def auto_analyze(
     Triggers all appropriate analyzers based on data tier
     """
     try:
-        org_id = user_context["org_id"]
-        user_id = user_context["user_id"]
+        org_id = user["org_id"]
+        user_id = user["user_id"]
         trace_id = getattr(request.state, "trace_id", None)
 
         # Start timing
@@ -60,11 +61,22 @@ async def auto_analyze(
         execution_time_ms = int((time.time() - start_time) * 1000)
 
         if result['success']:
+            # Save analysis to database
+            analysis_id = analysis_service.save_analysis(
+                org_id=org_id,
+                user_id=user_id,
+                batch_id=analysis_request.batch_id,
+                data_tier=result.get('data_tier', 'Unknown'),
+                analyzers_run=result.get('analyzers_run', []),
+                insights=result.get('insights', {}),
+                execution_time_ms=execution_time_ms
+            )
+
             # Log to audit trail
             await audit_logger.log_analysis_run(
                 user_id=user_id,
                 org_id=org_id,
-                analysis_id=result.get('analysis_id', 'unknown'),
+                analysis_id=analysis_id or 'unknown',
                 batch_id=analysis_request.batch_id,
                 data_tier=result.get('data_tier', 'unknown'),
                 analyzers_run=result.get('analyzers_run', []),
@@ -76,6 +88,7 @@ async def auto_analyze(
 
             return {
                 "success": True,
+                "analysis_id": analysis_id,
                 "execution_time_ms": execution_time_ms,
                 **result
             }
@@ -95,10 +108,9 @@ async def auto_analyze(
 
 
 @router.get("/analyze/results/{analysis_id}")
-@require_auth
 async def get_analysis_results(
     analysis_id: str,
-    user_context: dict
+    user: dict = Depends(get_current_user)
 ):
     """
     Get analysis results by ID
@@ -106,18 +118,24 @@ async def get_analysis_results(
     Multi-tenant: Automatically filtered by org_id via RLS
     """
     try:
-        org_id = user_context["org_id"]
+        org_id = user["org_id"]
 
-        # TODO: Query analyses table filtered by org_id and analysis_id
-        # For now, return mock data
+        # Query analysis from database
+        analysis = analysis_service.get_analysis(analysis_id, org_id)
+
+        if not analysis:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Analysis {analysis_id} not found or access denied"
+            )
 
         return {
             "success": True,
-            "analysis_id": analysis_id,
-            "org_id": org_id,
-            "message": "Analysis results endpoint - TODO: implement database query"
+            **analysis
         }
 
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Failed to fetch analysis results: {str(e)}", exc_info=True)
         raise HTTPException(
@@ -127,11 +145,10 @@ async def get_analysis_results(
 
 
 @router.get("/analyze/list")
-@require_auth
 async def list_analyses(
-    user_context: dict,
     limit: int = 20,
-    offset: int = 0
+    offset: int = 0,
+    user: dict = Depends(get_current_user)
 ):
     """
     List analyses for the user's organization
@@ -139,19 +156,19 @@ async def list_analyses(
     Multi-tenant: Automatically filtered by org_id via RLS
     """
     try:
-        org_id = user_context["org_id"]
+        org_id = user["org_id"]
 
-        # TODO: Query analyses table filtered by org_id
-        # For now, return empty list
+        # Query analyses from database
+        result = analysis_service.list_analyses(
+            org_id=org_id,
+            limit=limit,
+            offset=offset
+        )
 
         return {
             "success": True,
             "org_id": org_id,
-            "analyses": [],
-            "total": 0,
-            "limit": limit,
-            "offset": offset,
-            "message": "List analyses endpoint - TODO: implement database query"
+            **result
         }
 
     except Exception as e:

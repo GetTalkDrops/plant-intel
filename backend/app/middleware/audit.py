@@ -39,7 +39,11 @@ class AuditLogger:
             logger.warning("Supabase credentials not set - audit logging will fail")
             self.supabase = None
         else:
-            self.supabase: Client = create_client(supabase_url, supabase_key)
+            try:
+                self.supabase: Client = create_client(supabase_url, supabase_key)
+            except Exception as e:
+                logger.warning(f"Failed to create Supabase client for audit logging: {e}")
+                self.supabase = None
 
     async def log(
         self,

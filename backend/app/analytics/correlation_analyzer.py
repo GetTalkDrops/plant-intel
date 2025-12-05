@@ -12,7 +12,7 @@ class CorrelationAnalyzer:
     def __init__(self, supabase_client):
         self.supabase = supabase_client
     
-    def find_cost_correlations(self, facility_id: int, material_code: str,
+    def find_cost_correlations(self, org_id: int, material_code: str,
                                inflection_date: Optional[str] = None,
                                window_days: int = 30) -> List[Dict]:
         """
@@ -27,7 +27,7 @@ class CorrelationAnalyzer:
             # Get work orders for this material
             response = self.supabase.table('work_orders')\
                 .select('upload_timestamp, supplier_id, actual_material_cost, batch_id')\
-                .eq('facility_id', facility_id)\
+                .eq('org_id', org_id)\
                 .eq('material_code', material_code)\
                 .gte('upload_timestamp', cutoff_date)\
                 .order('upload_timestamp', desc=False)\
@@ -57,7 +57,7 @@ class CorrelationAnalyzer:
             logger.error(f"Error finding cost correlations: {str(e)}")
             return correlations
     
-    def find_quality_correlations(self, facility_id: int, material_code: str,
+    def find_quality_correlations(self, org_id: int, material_code: str,
                                   inflection_date: Optional[str] = None,
                                   window_days: int = 30) -> List[Dict]:
         """
@@ -72,7 +72,7 @@ class CorrelationAnalyzer:
             # Get work orders
             response = self.supabase.table('work_orders')\
                 .select('upload_timestamp, supplier_id, equipment_id, machine_id, units_scrapped, units_produced, actual_quantity')\
-                .eq('facility_id', facility_id)\
+                .eq('org_id', org_id)\
                 .eq('material_code', material_code)\
                 .gte('upload_timestamp', cutoff_date)\
                 .order('upload_timestamp', desc=False)\
@@ -100,7 +100,7 @@ class CorrelationAnalyzer:
             logger.error(f"Error finding quality correlations: {str(e)}")
             return correlations
     
-    def find_equipment_correlations(self, facility_id: int, equipment_id: str,
+    def find_equipment_correlations(self, org_id: int, equipment_id: str,
                                    window_days: int = 30) -> List[Dict]:
         """
         Find events that correlate with equipment degradation
@@ -114,7 +114,7 @@ class CorrelationAnalyzer:
             # Get work orders for this equipment
             response = self.supabase.table('work_orders')\
                 .select('upload_timestamp, actual_labor_hours, material_code, shift, operator')\
-                .eq('facility_id', facility_id)\
+                .eq('org_id', org_id)\
                 .or_(f'equipment_id.eq.{equipment_id},machine_id.eq.{equipment_id}')\
                 .gte('upload_timestamp', cutoff_date)\
                 .order('upload_timestamp', desc=False)\

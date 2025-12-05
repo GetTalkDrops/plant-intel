@@ -9,8 +9,8 @@ python-multipart==0.0.6
 
 # Database
 supabase==2.9.0
-psycopg2-binary==2.9.9
-sqlalchemy==2.0.23
+# psycopg2-binary==2.9.9  # Not needed - using Supabase client instead
+# sqlalchemy==2.0.23  # Not needed - using Supabase client instead
 
 # Authentication
 pyjwt==2.8.0
@@ -25,17 +25,17 @@ pyopenssl==24.0.0   # Forces compatibility with cryptography 45.x
 # AI/ML
 openai==1.3.7
 anthropic==0.7.8
-numpy==1.26.2
-pandas==2.1.4
-scikit-learn==1.3.2
+numpy>=1.26.4  # Python 3.13 compatible
+pandas>=2.2.0  # Python 3.13 compatible
+scikit-learn>=1.4.0  # Python 3.13 compatible
 
 # Payment Processing
 stripe==7.8.0
 
 # Utilities
 python-dotenv==1.0.0
-pydantic==2.5.2
-pydantic-settings==2.1.0
+pydantic>=2.10.0  # Python 3.13 compatible
+pydantic-settings>=2.6.0  # Python 3.13 compatible
 python-dateutil==2.8.2
 pytz==2023.3
 

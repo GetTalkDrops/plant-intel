@@ -19,7 +19,7 @@ class AutoAnalysisOrchestrator:
 
     def analyze(
         self,
-        facility_id: int,
+        org_id: int,
         batch_id: str,
         csv_headers: list,
         config: Optional[Dict[str, Any]] = None,
@@ -29,7 +29,7 @@ class AutoAnalysisOrchestrator:
         Run automated analysis on uploaded data
 
         Args:
-            facility_id: Facility ID
+            org_id: Facility ID
             batch_id: Batch identifier for the uploaded data
             csv_headers: List of CSV column headers
             config: Optional configuration dict
@@ -39,7 +39,7 @@ class AutoAnalysisOrchestrator:
             Dictionary with analysis results
         """
         try:
-            logger.info(f"Starting auto-analysis for facility {facility_id}, batch {batch_id}")
+            logger.info(f"Starting auto-analysis for facility {org_id}, batch {batch_id}")
 
             # Use provided tier or detect from headers
             if data_tier is not None:
@@ -63,7 +63,7 @@ class AutoAnalysisOrchestrator:
             # Initialize results
             results = {
                 "success": True,
-                "facility_id": facility_id,
+                "org_id": org_id,
                 "batch_id": batch_id,
                 "data_tier": tier_formatted,
                 "tier_info": tier_info,
@@ -90,7 +90,7 @@ class AutoAnalysisOrchestrator:
                 }
 
                 cost_results = self.cost_analyzer.predict_cost_variance(
-                    facility_id=facility_id,
+                    org_id=org_id,
                     batch_id=batch_id,
                     config=cost_config
                 )
@@ -127,7 +127,7 @@ class AutoAnalysisOrchestrator:
                     }
 
                     equipment_results = equipment_predictor.predict_failures(
-                        facility_id=facility_id,
+                        org_id=org_id,
                         batch_id=batch_id,
                         config=equipment_config
                     )
@@ -164,7 +164,7 @@ class AutoAnalysisOrchestrator:
                     }
 
                     quality_results = quality_analyzer.analyze_quality_patterns(
-                        facility_id=facility_id,
+                        org_id=org_id,
                         batch_id=batch_id,
                         config=quality_config
                     )
@@ -200,7 +200,7 @@ class AutoAnalysisOrchestrator:
                     }
 
                     efficiency_results = efficiency_analyzer.analyze_efficiency_patterns(
-                        facility_id=facility_id,
+                        org_id=org_id,
                         batch_id=batch_id,
                         config=efficiency_config
                     )
@@ -242,6 +242,6 @@ class AutoAnalysisOrchestrator:
             return {
                 "success": False,
                 "error": str(e),
-                "facility_id": facility_id,
+                "org_id": org_id,
                 "batch_id": batch_id
             }

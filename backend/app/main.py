@@ -16,17 +16,16 @@ from dotenv import load_dotenv
 # Load environment variables
 load_dotenv()
 
-# Configure logging
-logging.basicConfig(
-    level=os.getenv("LOG_LEVEL", "INFO"),
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    handlers=[logging.StreamHandler(sys.stdout)]
-)
+# Configure structured logging
+from app.utils.structured_logging import setup_logging
+setup_logging()
 
 logger = logging.getLogger(__name__)
 
 # Import middleware
 from app.middleware import audit_logger
+from app.middleware.performance import PerformanceMonitoringMiddleware, RequestSizeMiddleware
+from app.middleware.rate_limiting import RateLimitMiddleware
 
 # Import routers (will create these)
 from app.routers import (
@@ -35,6 +34,8 @@ from app.routers import (
     analysis,
     mappings,
     chat,
+    usage,
+    onboarding,
 )
 
 
@@ -64,8 +65,10 @@ app = FastAPI(
 )
 
 # ============================================================================
-# CORS Configuration
+# Middleware Configuration
 # ============================================================================
+
+# CORS Configuration
 allowed_origins = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000,http://localhost:3001").split(",")
 
 app.add_middleware(
@@ -75,6 +78,19 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Performance Monitoring Middleware
+# Tracks request duration and logs slow requests
+app.add_middleware(PerformanceMonitoringMiddleware)
+
+# Request Size Middleware
+# Logs warnings for large request payloads
+app.add_middleware(RequestSizeMiddleware)
+
+# Rate Limiting Middleware
+# Prevents API abuse (configurable per environment)
+rate_limit = int(os.getenv("RATE_LIMIT_PER_MINUTE", 60))
+app.add_middleware(RateLimitMiddleware, requests_per_minute=rate_limit)
 
 
 # ============================================================================
@@ -115,20 +131,6 @@ async def global_exception_handler(request: Request, exc: Exception):
     )
 
 
-# ============================================================================
-# Health Check
-# ============================================================================
-@app.get("/health")
-async def health_check():
-    """Health check endpoint"""
-    return {
-        "status": "healthy",
-        "service": "plant-intel-api",
-        "version": "1.0.0",
-        "environment": os.getenv("ENVIRONMENT", "development"),
-    }
-
-
 @app.get("/")
 async def root():
     """Root endpoint"""
@@ -144,10 +146,12 @@ async def root():
 # Include Routers
 # ============================================================================
 app.include_router(health.router, prefix="/api/v1", tags=["Health"])
+app.include_router(onboarding.router, prefix="/api/v1", tags=["Onboarding"])
 app.include_router(upload.router, prefix="/api/v1", tags=["Upload"])
 app.include_router(analysis.router, prefix="/api/v1", tags=["Analysis"])
 app.include_router(mappings.router, prefix="/api/v1", tags=["Mappings"])
 app.include_router(chat.router, prefix="/api/v1", tags=["Chat"])
+app.include_router(usage.router, prefix="/api/v1", tags=["Usage"])
 
 
 if __name__ == "__main__":

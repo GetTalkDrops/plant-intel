@@ -4,10 +4,10 @@ Mapping Profile Endpoints
 
 import logging
 from typing import Optional
-from fastapi import APIRouter, Request, HTTPException
+from fastapi import APIRouter, Request, HTTPException, Depends
 from pydantic import BaseModel
 
-from app.middleware import require_auth, audit_logger
+from app.middleware import require_auth, audit_logger, get_current_user
 
 logger = logging.getLogger(__name__)
 
@@ -69,11 +69,10 @@ async def create_mapping_profile(
 
 
 @router.get("/mappings")
-@require_auth
 async def list_mapping_profiles(
-    user_context: dict,
     limit: int = 50,
-    offset: int = 0
+    offset: int = 0,
+    user: dict = Depends(get_current_user)
 ):
     """
     List mapping profiles for the user's organization
@@ -81,7 +80,7 @@ async def list_mapping_profiles(
     Multi-tenant: Automatically filtered by org_id via RLS
     """
     try:
-        org_id = user_context["org_id"]
+        org_id = user["org_id"]
 
         # TODO: Query mapping_profiles table filtered by org_id
         # For now, return empty list
@@ -107,6 +106,7 @@ async def list_mapping_profiles(
 @router.get("/mappings/{map_id}")
 @require_auth
 async def get_mapping_profile(
+    request: Request,
     map_id: str,
     user_context: dict
 ):
@@ -183,6 +183,7 @@ async def update_mapping_profile(
 @router.delete("/mappings/{map_id}")
 @require_auth
 async def delete_mapping_profile(
+    request: Request,
     map_id: str,
     user_context: dict
 ):

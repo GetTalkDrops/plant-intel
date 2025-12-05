@@ -4,10 +4,10 @@ CSV Upload Endpoints
 
 import logging
 from typing import Optional
-from fastapi import APIRouter, UploadFile, File, Form, Request, HTTPException
+from fastapi import APIRouter, UploadFile, File, Form, Request, HTTPException, Depends
 from fastapi.responses import JSONResponse
 
-from app.middleware import require_auth, audit_logger
+from app.middleware import get_current_user, audit_logger
 from app.handlers.csv_upload_service import CsvUploadService
 
 logger = logging.getLogger(__name__)
@@ -17,12 +17,11 @@ csv_service = CsvUploadService()
 
 
 @router.post("/upload/csv")
-@require_auth
 async def upload_csv(
     request: Request,
-    user_context: dict,
     file: UploadFile = File(...),
-    confirmed_mapping: Optional[str] = Form(None)
+    confirmed_mapping: Optional[str] = Form(None),
+    user: dict = Depends(get_current_user)
 ):
     """
     Upload CSV file with automatic column mapping
@@ -31,8 +30,8 @@ async def upload_csv(
     """
     try:
         # Extract user context
-        org_id = user_context["org_id"]
-        user_id = user_context["user_id"]
+        org_id = user["org_id"]
+        user_id = user["user_id"]
         trace_id = getattr(request.state, "trace_id", None)
 
         # Read file content
@@ -100,10 +99,9 @@ async def upload_csv(
 
 
 @router.post("/upload/csv/analyze")
-@require_auth
 async def analyze_csv(
-    user_context: dict,
-    file: UploadFile = File(...)
+    file: UploadFile = File(...),
+    user: dict = Depends(get_current_user)
 ):
     """
     Analyze CSV and return mapping suggestions without uploading

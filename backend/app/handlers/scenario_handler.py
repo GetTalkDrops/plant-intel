@@ -16,7 +16,7 @@ class ScenarioHandler:
         key = os.getenv("SUPABASE_SERVICE_KEY")
         self.supabase: Client = create_client(url, key)
     
-    def handle_scenario(self, query: str, facility_id: int, scenario_type: str) -> Dict:
+    def handle_scenario(self, query: str, org_id: int, scenario_type: str) -> Dict:
         """Main entry point for scenario modeling"""
         
         handlers = {
@@ -28,15 +28,15 @@ class ScenarioHandler:
         }
         
         handler = handlers.get(scenario_type, self._model_general)
-        return handler(query, facility_id)
+        return handler(query, org_id)
     
-    def _model_shift_addition(self, query: str, facility_id: int) -> Dict:
+    def _model_shift_addition(self, query: str, org_id: int) -> Dict:
         """Model impact of adding production shifts"""
         
         # Get current production data
         response = self.supabase.table('work_orders')\
             .select('actual_labor_hours, actual_total_cost, quantity_produced, standard_hours')\
-            .eq('facility_id', facility_id)\
+            .eq('org_id', org_id)\
             .not_.is_('actual_labor_hours', 'null')\
             .gt('actual_labor_hours', 0)\
             .execute()
@@ -108,13 +108,13 @@ class ScenarioHandler:
             'total_impact': round(net_benefit, 2)
         }
     
-    def _model_quality_improvement(self, query: str, facility_id: int) -> Dict:
+    def _model_quality_improvement(self, query: str, org_id: int) -> Dict:
         """Model impact of improving scrap rates"""
         
         # Get current scrap data
         response = self.supabase.table('work_orders')\
             .select('units_scrapped, quantity_produced, actual_material_cost, actual_labor_cost')\
-            .eq('facility_id', facility_id)\
+            .eq('org_id', org_id)\
             .not_.is_('units_scrapped', 'null')\
             .gt('quantity_produced', 0)\
             .execute()
@@ -172,12 +172,12 @@ class ScenarioHandler:
             'total_impact': round(scrap_cost_savings, 2)
         }
     
-    def _model_capacity_change(self, query: str, facility_id: int) -> Dict:
+    def _model_capacity_change(self, query: str, org_id: int) -> Dict:
         """Model capacity changes"""
         
         response = self.supabase.table('work_orders')\
             .select('quantity_produced, actual_labor_hours')\
-            .eq('facility_id', facility_id)\
+            .eq('org_id', org_id)\
             .gt('quantity_produced', 0)\
             .execute()
         
@@ -224,12 +224,12 @@ class ScenarioHandler:
             'total_impact': 0
         }
     
-    def _model_cost_reduction(self, query: str, facility_id: int) -> Dict:
+    def _model_cost_reduction(self, query: str, org_id: int) -> Dict:
         """Model general cost reduction scenarios"""
         
         response = self.supabase.table('work_orders')\
             .select('actual_total_cost, actual_labor_cost, actual_material_cost')\
-            .eq('facility_id', facility_id)\
+            .eq('org_id', org_id)\
             .not_.is_('actual_total_cost', 'null')\
             .execute()
         
@@ -279,7 +279,7 @@ class ScenarioHandler:
             'total_impact': round(total_savings, 2)
         }
     
-    def _model_general(self, query: str, facility_id: int) -> Dict:
+    def _model_general(self, query: str, org_id: int) -> Dict:
         """Handle general/unknown scenarios"""
         
         message = "I can help you model scenarios like:\n\n"

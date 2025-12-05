@@ -33,7 +33,7 @@ class EnhancedQueryRouter:
         self.data_query_handler = DataQueryHandler()
         self.scenario_handler = ScenarioHandler()
         
-    def route_query(self, query: str, facility_id: int = 1, batch_id: str = None, config: dict = None) -> Dict:
+    def route_query(self, query: str, org_id: int = 1, batch_id: str = None, config: dict = None) -> Dict:
         """Enhanced routing with data queries, scenarios, and batch filtering"""
         
         # Preprocess query
@@ -47,7 +47,7 @@ class EnhancedQueryRouter:
         if classification['type'] == 'data_query':
             result = self.data_query_handler.handle_query(
                 corrected_query, 
-                facility_id, 
+                org_id, 
                 classification.get('subtype', 'general_metric')
             )
             return self._add_correction_note(result, query, corrected_query, was_corrected)
@@ -56,7 +56,7 @@ class EnhancedQueryRouter:
         if classification['type'] == 'scenario':
             result = self.scenario_handler.handle_scenario(
                 corrected_query,
-                facility_id,
+                org_id,
                 classification.get('subtype', 'general')
             )
             return self._add_correction_note(result, query, corrected_query, was_corrected)
@@ -84,25 +84,25 @@ class EnhancedQueryRouter:
         
         if any(keyword in query_lower for keyword in equipment_keywords):
             return self._add_correction_note(
-                self._format_equipment_response(facility_id, query, batch_id, config),
+                self._format_equipment_response(org_id, query, batch_id, config),
                 query, corrected_query, was_corrected
             )
         
         if any(keyword in query_lower for keyword in quality_keywords):
             return self._add_correction_note(
-                self._format_quality_response(facility_id, query, batch_id, config),
+                self._format_quality_response(org_id, query, batch_id, config),
                 query, corrected_query, was_corrected
             )
         
         if any(keyword in query_lower for keyword in cost_keywords):
             return self._add_correction_note(
-                self._format_cost_response(facility_id, query, batch_id, config),
+                self._format_cost_response(org_id, query, batch_id, config),
                 query, corrected_query, was_corrected
             )
         
         if any(keyword in query_lower for keyword in efficiency_keywords):
             return self._add_correction_note(
-                self._format_efficiency_response(facility_id, query, batch_id, config),
+                self._format_efficiency_response(org_id, query, batch_id, config),
                 query, corrected_query, was_corrected
             )
         
@@ -111,25 +111,25 @@ class EnhancedQueryRouter:
         
         if 'cost' in categories:
             return self._add_correction_note(
-                self._format_cost_response(facility_id, query, batch_id, config),
+                self._format_cost_response(org_id, query, batch_id, config),
                 query, corrected_query, was_corrected
             )
         
         if 'equipment' in categories:
             return self._add_correction_note(
-                self._format_equipment_response(facility_id, query, batch_id, config),
+                self._format_equipment_response(org_id, query, batch_id, config),
                 query, corrected_query, was_corrected
             )
         
         if 'quality' in categories:
             return self._add_correction_note(
-                self._format_quality_response(facility_id, query, batch_id, config),
+                self._format_quality_response(org_id, query, batch_id, config),
                 query, corrected_query, was_corrected
             )
         
         if 'efficiency' in categories:
             return self._add_correction_note(
-                self._format_efficiency_response(facility_id, query, batch_id, config),
+                self._format_efficiency_response(org_id, query, batch_id, config),
                 query, corrected_query, was_corrected
             )
         
@@ -170,8 +170,8 @@ class EnhancedQueryRouter:
     
     # EXISTING METHODS (keep all your existing _format_* methods exactly as they are)
     
-    def _format_cost_response(self, facility_id: int, query: str, batch_id: str = None, config: dict = None) -> Dict:
-        result = self.cost_analyzer.predict_cost_variance(facility_id, batch_id, config)
+    def _format_cost_response(self, org_id: int, query: str, batch_id: str = None, config: dict = None) -> Dict:
+        result = self.cost_analyzer.predict_cost_variance(org_id, batch_id, config)
         
         if result.get('status') == 'insufficient_data':
             validation = result.get('validation', {})
@@ -234,8 +234,8 @@ class EnhancedQueryRouter:
             "total_savings_opportunity": result.get("total_savings_opportunity", 0),
         }
     
-    def _format_equipment_response(self, facility_id: int, query: str, batch_id: str = None, config: dict = None) -> Dict:
-        result = self.equipment_predictor.predict_failures(facility_id, batch_id, config)
+    def _format_equipment_response(self, org_id: int, query: str, batch_id: str = None, config: dict = None) -> Dict:
+        result = self.equipment_predictor.predict_failures(org_id, batch_id, config)
         
         if result.get('message'):
             return {
@@ -296,8 +296,8 @@ class EnhancedQueryRouter:
             'total_impact': result.get('total_downtime_cost', 0)
         }
 
-    def _format_quality_response(self, facility_id: int, query: str, batch_id: str = None, config: dict = None) -> Dict:
-        result = self.quality_analyzer.analyze_quality_patterns(facility_id, batch_id, config)
+    def _format_quality_response(self, org_id: int, query: str, batch_id: str = None, config: dict = None) -> Dict:
+        result = self.quality_analyzer.analyze_quality_patterns(org_id, batch_id, config)
         
         if not result.get('quality_issues') or len(result['quality_issues']) == 0:
             return {
@@ -351,8 +351,8 @@ class EnhancedQueryRouter:
             'total_impact': result.get('total_scrap_cost', 0)
         }
     
-    def _format_efficiency_response(self, facility_id: int, query: str, batch_id: str = None, config: dict = None) -> Dict:
-        result = self.efficiency_analyzer.analyze_efficiency_patterns(facility_id, batch_id, config)
+    def _format_efficiency_response(self, org_id: int, query: str, batch_id: str = None, config: dict = None) -> Dict:
+        result = self.efficiency_analyzer.analyze_efficiency_patterns(org_id, batch_id, config)
         
         if not result.get('efficiency_insights'):
             return {

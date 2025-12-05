@@ -11,14 +11,14 @@ class ConversationalAutoAnalysis:
         self.quality_analyzer = QualityAnalyzer()
         self.efficiency_analyzer = EfficiencyAnalyzer()
         
-    def generate_conversational_summary(self, facility_id: int = 1) -> Dict:
+    def generate_conversational_summary(self, org_id: int = 1) -> Dict:
         """Generate conversational manufacturing intelligence"""
         
         # Run all analyses
-        cost_result = self.cost_analyzer.predict_cost_variance(facility_id)
-        equip_result = self.equipment_predictor.predict_failures(facility_id)
-        qual_result = self.quality_analyzer.analyze_quality_patterns(facility_id)
-        eff_result = self.efficiency_analyzer.analyze_efficiency_patterns(facility_id)
+        cost_result = self.cost_analyzer.predict_cost_variance(org_id)
+        equip_result = self.equipment_predictor.predict_failures(org_id)
+        qual_result = self.quality_analyzer.analyze_quality_patterns(org_id)
+        eff_result = self.efficiency_analyzer.analyze_efficiency_patterns(org_id)
         
         # Build conversational response
         total_impact = 0

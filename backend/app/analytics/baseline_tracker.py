@@ -12,7 +12,7 @@ class BaselineTracker:
     def __init__(self, supabase_client):
         self.supabase = supabase_client
     
-    def update_baselines(self, facility_id: int, batch_id: str) -> Dict:
+    def update_baselines(self, org_id: int, batch_id: str) -> Dict:
         """
         Update all baselines after a new batch upload
         Returns dict of updated metrics
@@ -24,43 +24,43 @@ class BaselineTracker:
             # Fetch recent work orders
             response = self.supabase.table('work_orders')\
                 .select('*')\
-                .eq('facility_id', facility_id)\
+                .eq('org_id', org_id)\
                 .gte('upload_timestamp', thirty_days_ago)\
                 .execute()
             
             work_orders = response.data
             
             if not work_orders:
-                logger.warning(f"No work orders found for facility {facility_id}")
+                logger.warning(f"No work orders found for facility {org_id}")
                 return {}
             
             # Calculate and update baselines for different metrics
             updates = {}
             
             # Material cost baselines
-            material_baselines = self._calculate_material_baselines(work_orders, facility_id)
+            material_baselines = self._calculate_material_baselines(work_orders, org_id)
             updates['material_costs'] = material_baselines
             
             # Labor hour baselines
-            labor_baselines = self._calculate_labor_baselines(work_orders, facility_id)
+            labor_baselines = self._calculate_labor_baselines(work_orders, org_id)
             updates['labor_hours'] = labor_baselines
             
             # Scrap rate baselines
-            scrap_baselines = self._calculate_scrap_baselines(work_orders, facility_id)
+            scrap_baselines = self._calculate_scrap_baselines(work_orders, org_id)
             updates['scrap_rates'] = scrap_baselines
             
             # Equipment cycle time baselines (if equipment_id exists)
-            equipment_baselines = self._calculate_equipment_baselines(work_orders, facility_id)
+            equipment_baselines = self._calculate_equipment_baselines(work_orders, org_id)
             updates['equipment_performance'] = equipment_baselines
             
-            logger.info(f"Updated baselines for facility {facility_id}: {len(updates)} metric types")
+            logger.info(f"Updated baselines for facility {org_id}: {len(updates)} metric types")
             return updates
             
         except Exception as e:
             logger.error(f"Error updating baselines: {str(e)}")
             return {}
     
-    def _calculate_material_baselines(self, work_orders: List[Dict], facility_id: int) -> int:
+    def _calculate_material_baselines(self, work_orders: List[Dict], org_id: int) -> int:
         """Calculate and store material cost baselines"""
         material_costs = {}
         
@@ -80,7 +80,7 @@ class BaselineTracker:
                 avg = sum(costs) / len(costs)
                 std = self._calculate_std(costs)
                 self._upsert_baseline(
-                    facility_id, 
+                    org_id, 
                     'material_cost', 
                     material_code, 
                     avg, 
@@ -91,7 +91,7 @@ class BaselineTracker:
         
         return count
     
-    def _calculate_labor_baselines(self, work_orders: List[Dict], facility_id: int) -> int:
+    def _calculate_labor_baselines(self, work_orders: List[Dict], org_id: int) -> int:
         """Calculate and store labor hour baselines"""
         labor_hours = {}
         
@@ -114,7 +114,7 @@ class BaselineTracker:
                 avg = sum(hours) / len(hours)
                 std = self._calculate_std(hours)
                 self._upsert_baseline(
-                    facility_id, 
+                    org_id, 
                     'labor_hours', 
                     operation_type, 
                     avg, 
@@ -125,7 +125,7 @@ class BaselineTracker:
         
         return count
     
-    def _calculate_scrap_baselines(self, work_orders: List[Dict], facility_id: int) -> int:
+    def _calculate_scrap_baselines(self, work_orders: List[Dict], org_id: int) -> int:
         """Calculate and store scrap rate baselines"""
         scrap_rates = {}
         
@@ -146,7 +146,7 @@ class BaselineTracker:
                 avg = sum(rates) / len(rates)
                 std = self._calculate_std(rates)
                 self._upsert_baseline(
-                    facility_id, 
+                    org_id, 
                     'scrap_rate', 
                     material_code, 
                     avg, 
@@ -157,7 +157,7 @@ class BaselineTracker:
         
         return count
     
-    def _calculate_equipment_baselines(self, work_orders: List[Dict], facility_id: int) -> int:
+    def _calculate_equipment_baselines(self, work_orders: List[Dict], org_id: int) -> int:
         """Calculate and store equipment performance baselines"""
         equipment_hours = {}
         
@@ -176,7 +176,7 @@ class BaselineTracker:
                 avg = sum(hours) / len(hours)
                 std = self._calculate_std(hours)
                 self._upsert_baseline(
-                    facility_id, 
+                    org_id, 
                     'equipment_cycle_time', 
                     equipment_id, 
                     avg, 
@@ -187,14 +187,14 @@ class BaselineTracker:
         
         return count
     
-    def _upsert_baseline(self, facility_id: int, metric_type: str, identifier: str, 
+    def _upsert_baseline(self, org_id: int, metric_type: str, identifier: str, 
                          avg: float, std: float, count: int):
         """Insert or update a baseline record"""
         try:
             # Use onConflict parameter for proper upsert
             self.supabase.table('facility_baselines').upsert(
                 {
-                    'facility_id': facility_id,
+                    'org_id': org_id,
                     'metric_type': metric_type,
                     'identifier': identifier,
                     'rolling_avg': round(avg, 2),
@@ -202,17 +202,17 @@ class BaselineTracker:
                     'sample_count': count,
                     'last_updated': datetime.now().isoformat()
                 },
-                on_conflict='facility_id,metric_type,identifier'
+                on_conflict='org_id,metric_type,identifier'
             ).execute()
         except Exception as e:
             logger.error(f"Error upserting baseline: {str(e)}")
     
-    def get_baseline(self, facility_id: int, metric_type: str, identifier: str) -> Optional[Dict]:
+    def get_baseline(self, org_id: int, metric_type: str, identifier: str) -> Optional[Dict]:
         """Get a specific baseline"""
         try:
             response = self.supabase.table('facility_baselines')\
                 .select('*')\
-                .eq('facility_id', facility_id)\
+                .eq('org_id', org_id)\
                 .eq('metric_type', metric_type)\
                 .eq('identifier', identifier)\
                 .execute()

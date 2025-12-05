@@ -15,8 +15,12 @@ import {
 } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
 import { IconUpload, IconAlertCircle, IconMap } from "@tabler/icons-react";
-import { MappingProfile } from "@/types/mapping";
+import { MappingProfile } from "@/lib/types/api";
 import { cn } from "@/lib/utils";
+import { useApiClient } from "@/lib/api-client";
+import { toast } from "sonner";
+import { DashboardSkeleton } from "@/components/loading-skeleton";
+import { NoMappingProfilesEmptyState } from "@/components/empty-state";
 
 // Sample data for recent analyses
 const analysisData = [
@@ -68,7 +72,8 @@ const analysisData = [
 ];
 
 // Mock saved profiles - in production, this would come from Supabase
-const mockProfiles: MappingProfile[] = [
+// Temporarily disabled - should use API calls instead
+const mockProfiles: any[] = [
   {
     id: "profile-1",
     name: "Standard Production Data",
@@ -76,7 +81,11 @@ const mockProfiles: MappingProfile[] = [
     erpSystem: "NetSuite",
     dataGranularity: "header",
     aggregationStrategy: null,
-    mappings: [
+    mappings: {
+      "workOrderNumber": "WO",
+      "plannedMaterialCost": "Planned Material"
+    },
+    oldMappings: [
       {
         ontologyEntity: "WorkOrder",
         ontologyProperty: "workOrderNumber",
@@ -118,7 +127,18 @@ const mockProfiles: MappingProfile[] = [
     erpSystem: "SAP",
     dataGranularity: "operation",
     aggregationStrategy: "keep_detail",
-    mappings: [
+    mappings: {
+      "operationCode": "Op Code",
+      "unitsProduced": "Units Produced"
+    },
+    configVariables: [],
+    createdAt: "2025-01-10T00:00:00Z",
+    updatedAt: "2025-01-18T00:00:00Z",
+    userId: "user-1",
+    isActive: true,
+    usageCount: 8,
+    lastUsed: "2025-01-18T14:20:00Z",
+    oldMappings: [
       {
         ontologyEntity: "Operation",
         ontologyProperty: "operationCode",
@@ -144,13 +164,6 @@ const mockProfiles: MappingProfile[] = [
         sampleValues: ["100", "150"],
       },
     ],
-    configVariables: [],
-    createdAt: "2025-01-10T00:00:00Z",
-    updatedAt: "2025-01-18T00:00:00Z",
-    userId: "user-1",
-    isActive: true,
-    usageCount: 8,
-    lastUsed: "2025-01-18T14:20:00Z",
   },
   {
     id: "profile-3",
@@ -159,20 +172,9 @@ const mockProfiles: MappingProfile[] = [
     erpSystem: "Epicor",
     dataGranularity: "operation",
     aggregationStrategy: "keep_detail",
-    mappings: [
-      {
-        ontologyEntity: "Machine",
-        ontologyProperty: "machineId",
-        displayName: "Machine ID",
-        dataType: "string",
-        required: false,
-        sourceType: "csv",
-        csvColumn: "Machine",
-        confidence: "high",
-        isMapped: true,
-        sampleValues: ["M-001", "M-002"],
-      },
-    ],
+    mappings: {
+      "machineId": "Machine"
+    },
     configVariables: [],
     createdAt: "2024-12-20T00:00:00Z",
     updatedAt: "2025-01-12T00:00:00Z",
@@ -193,14 +195,13 @@ const mockLastUsed: Record<string, Date> = {
 export default function StartNewAnalysisPage() {
   const router = useRouter();
   const { isLoaded, isSignedIn } = useUser();
+  const api = useApiClient();
 
-  // Redirect to sign-in if not authenticated
-  React.useEffect(() => {
-    if (isLoaded && !isSignedIn) {
-      router.push('/sign-in');
-    }
-  }, [isLoaded, isSignedIn, router]);
-
+  // State management
+  const [profiles, setProfiles] = React.useState<MappingProfile[]>([]);
+  const [analyses, setAnalyses] = React.useState<any[]>([]);
+  const [isLoadingProfiles, setIsLoadingProfiles] = React.useState(true);
+  const [isLoadingAnalyses, setIsLoadingAnalyses] = React.useState(true);
   const [selectedProfiles, setSelectedProfiles] = React.useState<Set<string>>(
     new Set()
   );
@@ -209,13 +210,60 @@ export default function StartNewAnalysisPage() {
   const [isDragging, setIsDragging] = React.useState(false);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
-  // Show loading state while checking auth
-  if (!isLoaded || !isSignedIn) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="text-muted-foreground">Loading...</div>
-      </div>
-    );
+  // Redirect to sign-in if not authenticated
+  React.useEffect(() => {
+    if (isLoaded && !isSignedIn) {
+      router.push('/sign-in');
+    }
+  }, [isLoaded, isSignedIn, router]);
+
+  // Fetch mapping profiles from API
+  React.useEffect(() => {
+    if (!isLoaded || !isSignedIn) return;
+
+    const fetchProfiles = async () => {
+      try {
+        setIsLoadingProfiles(true);
+        const data = await api.mappings.list();
+        setProfiles(data);
+      } catch (error) {
+        console.error('Failed to load profiles:', error);
+        toast.error('Failed to load mapping profiles');
+        // Fall back to empty array
+        setProfiles([]);
+      } finally {
+        setIsLoadingProfiles(false);
+      }
+    };
+
+    fetchProfiles();
+  }, [isLoaded, isSignedIn]);
+
+  // Fetch recent analyses from API
+  React.useEffect(() => {
+    if (!isLoaded || !isSignedIn) return;
+
+    const fetchAnalyses = async () => {
+      try {
+        setIsLoadingAnalyses(true);
+        const data = await api.analyses.list();
+        setAnalyses(data);
+      } catch (error) {
+        console.error('Failed to load analyses:', error);
+        toast.error('Failed to load recent analyses');
+        // Fall back to mock data for now
+        setAnalyses(analysisData);
+      } finally {
+        setIsLoadingAnalyses(false);
+      }
+    };
+
+    fetchAnalyses();
+  }, [isLoaded, isSignedIn]);
+
+  // Show loading state while checking auth or loading data
+  if (!isLoaded || !isSignedIn || isLoadingProfiles) {
+    return <DashboardSkeleton />;
   }
 
   const handleProfileSelect = (profileId: string) => {
@@ -287,8 +335,10 @@ export default function StartNewAnalysisPage() {
   };
 
   const calculateMappingCoverage = (profile: MappingProfile): number => {
-    const mappedCount = profile.mappings.filter((m) => m.isMapped).length;
-    return Math.round((mappedCount / profile.mappings.length) * 100);
+    // Mappings is now Record<string, string>, calculate based on mapped keys
+    const mappedCount = Object.keys(profile.mappings).length;
+    const totalFields = 10; // TODO: Get total from ontology schema
+    return Math.round((mappedCount / totalFields) * 100);
   };
 
   return (
@@ -356,9 +406,9 @@ export default function StartNewAnalysisPage() {
               </p>
             </div>
 
-            {mockProfiles.length > 0 ? (
+            {profiles.length > 0 ? (
               <div className="grid gap-4 md:grid-cols-2">
-                {mockProfiles.map((profile) => (
+                {profiles.map((profile) => (
                   <ProfileSelectorCard
                     key={profile.id}
                     profile={profile}
@@ -371,14 +421,9 @@ export default function StartNewAnalysisPage() {
                 ))}
               </div>
             ) : (
-              <div className="rounded-lg border border-dashed p-8 text-center">
-                <p className="text-muted-foreground mb-4">
-                  No mapping profiles available. Create one to get started.
-                </p>
-                <Button onClick={() => router.push("/dashboard/mapping-library/new")}>
-                  Create Profile
-                </Button>
-              </div>
+              <NoMappingProfilesEmptyState
+                onCreateProfile={() => router.push("/dashboard/mapping-library/new")}
+              />
             )}
           </div>
 
@@ -388,28 +433,47 @@ export default function StartNewAnalysisPage() {
               <h3 className="text-lg font-semibold">Recent Analyses</h3>
             </div>
             <div className="space-y-2">
-              {analysisData.slice(0, 5).map((analysis) => (
-                <div
-                  key={analysis.id}
-                  className="rounded-lg border bg-card p-3 hover:bg-muted/50 cursor-pointer transition-colors"
-                  onClick={() => router.push("/dashboard/analysis/analysis-1")}
-                >
-                  <div className="flex items-start justify-between gap-2 mb-2">
-                    <h4 className="font-medium text-sm line-clamp-1">{analysis.header}</h4>
-                    <Badge
-                      variant={analysis.status === "Done" ? "secondary" : "default"}
-                      className="text-xs"
-                    >
-                      {analysis.status}
-                    </Badge>
+              {analyses.length > 0 ? (
+                analyses.slice(0, 5).map((analysis) => (
+                  <div
+                    key={analysis.id}
+                    className="rounded-lg border bg-card p-3 hover:bg-muted/50 transition-colors"
+                  >
+                    <div className="flex items-start justify-between gap-2 mb-2">
+                      <h4 className="font-medium text-sm line-clamp-1">
+                        {analysis.summary || `Analysis ${analysis.batch_id}`}
+                      </h4>
+                      <Badge
+                        variant={analysis.status === "completed" ? "secondary" : "default"}
+                        className="text-xs"
+                      >
+                        {analysis.status}
+                      </Badge>
+                    </div>
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <span>{analysis.data_tier || 'Standard'}</span>
+                        <span>•</span>
+                        <span>{new Date(analysis.created_at).toLocaleDateString()}</span>
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-6 text-xs"
+                        onClick={() => router.push(`/dashboard/chat?analysis_id=${analysis.id}`)}
+                      >
+                        Ask AI
+                      </Button>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <span>{analysis.type}</span>
-                    <span>•</span>
-                    <span>{analysis.reviewer}</span>
-                  </div>
+                ))
+              ) : (
+                <div className="rounded-lg border border-dashed p-6 text-center">
+                  <p className="text-sm text-muted-foreground">
+                    No analyses yet. Upload data to get started.
+                  </p>
                 </div>
-              ))}
+              )}
             </div>
           </div>
         </div>

@@ -16,7 +16,7 @@ app = FastAPI()
 logger = logging.getLogger(__name__)
 
 class AnalyzeRequest(BaseModel):
-    facility_id: int
+    org_id: int
     batch_id: str
     csv_headers: list[str]
     config: Dict[str, Any]  # NEW: Configuration from upload
@@ -26,7 +26,7 @@ class AnalyzeRequest(BaseModel):
 @app.post("/analyze/auto")
 async def analyze_auto(request: AnalyzeRequest):
     try:
-        logger.info(f"Starting analysis for facility {request.facility_id}, batch {request.batch_id}")
+        logger.info(f"Starting analysis for facility {request.org_id}, batch {request.batch_id}")
         logger.info(f"Configuration: {request.config}")
         
         # Extract config values
@@ -35,7 +35,7 @@ async def analyze_auto(request: AnalyzeRequest):
         # Initialize results
         results = {
             "success": True,
-            "facility_id": request.facility_id,
+            "org_id": request.org_id,
             "batch_id": request.batch_id,
             "data_tier": request.data_tier,
             "analyzers_run": [],
@@ -49,7 +49,7 @@ async def analyze_auto(request: AnalyzeRequest):
         # Run Cost Analyzer (always)
         from app.analyzers import cost_analyzer
         cost_results = cost_analyzer.analyze(
-            facility_id=request.facility_id,
+            org_id=request.org_id,
             config={
                 'labor_rate_hourly': config.get('labor_rate_hourly', 55),
                 'scrap_cost_per_unit': config.get('scrap_cost_per_unit', 75),
@@ -69,7 +69,7 @@ async def analyze_auto(request: AnalyzeRequest):
         if request.data_tier in ["Tier 2", "Tier 3"]:
             from app.analyzers import equipment_predictor
             equipment_results = equipment_predictor.analyze(
-                facility_id=request.facility_id,
+                org_id=request.org_id,
                 config={
                     'labor_rate_hourly': config.get('labor_rate_hourly', 55),
                     'scrap_cost_per_unit': config.get('scrap_cost_per_unit', 75),
@@ -96,7 +96,7 @@ async def analyze_auto(request: AnalyzeRequest):
         if request.data_tier in ["Tier 2", "Tier 3"]:
             from app.analyzers import quality_analyzer
             quality_results = quality_analyzer.analyze(
-                facility_id=request.facility_id,
+                org_id=request.org_id,
                 config={
                     'labor_rate_hourly': config.get('labor_rate_hourly', 55),
                     'scrap_cost_per_unit': config.get('scrap_cost_per_unit', 75),
@@ -118,7 +118,7 @@ async def analyze_auto(request: AnalyzeRequest):
         if request.data_tier == "Tier 3":
             from app.analyzers import efficiency_analyzer
             efficiency_results = efficiency_analyzer.analyze(
-                facility_id=request.facility_id,
+                org_id=request.org_id,
                 config={
                     'labor_rate_hourly': config.get('labor_rate_hourly', 55),
                     'scrap_cost_per_unit': config.get('scrap_cost_per_unit', 75),

@@ -12,7 +12,7 @@ class TrendDetector:
     def __init__(self, supabase_client):
         self.supabase = supabase_client
     
-    def detect_trend_start(self, facility_id: int, metric_type: str, 
+    def detect_trend_start(self, org_id: int, metric_type: str, 
                           identifier: str, current_value: float, 
                           baseline_avg: float, baseline_std: float) -> Optional[Dict]:
         """
@@ -25,7 +25,7 @@ class TrendDetector:
             
             response = self.supabase.table('work_orders')\
                 .select('*')\
-                .eq('facility_id', facility_id)\
+                .eq('org_id', org_id)\
                 .gte('upload_timestamp', thirty_days_ago)\
                 .order('upload_timestamp', desc=False)\
                 .execute()

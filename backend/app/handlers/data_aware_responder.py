@@ -13,11 +13,11 @@ class DataAwareResponder:
         self.available_fields = set()
         self.missing_queries_log = []
         
-    def analyze_available_data(self, facility_id: int = 1):
+    def analyze_available_data(self, org_id: int = 1):
         """Check what data fields are actually available"""
         response = self.supabase.table('work_orders')\
             .select('*')\
-            .eq('facility_id', facility_id)\
+            .eq('org_id', org_id)\
             .eq('demo_mode', True)\
             .limit(10)\
             .execute()
@@ -37,11 +37,11 @@ class DataAwareResponder:
             if sample.get('material_code'):
                 self.available_fields.add('equipment_materials')
                 
-    def get_data_aware_response(self, query: str, facility_id: int = 1) -> Dict:
+    def get_data_aware_response(self, query: str, org_id: int = 1) -> Dict:
         """Generate data-aware response based on available data"""
         query_lower = query.lower()
         
-        self.analyze_available_data(facility_id)
+        self.analyze_available_data(org_id)
         
         # Shift-related queries
         if 'shift' in query_lower:

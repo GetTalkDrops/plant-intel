@@ -93,7 +93,7 @@ class CostAnalyzer:
             'labor': format_context(labor_ratio)
         }
     
-    def _add_baseline_context(self, row, facility_id: int, baselines_cache: Dict) -> Dict:
+    def _add_baseline_context(self, row, org_id: int, baselines_cache: Dict) -> Dict:
         """Add baseline comparison context to a work order row"""
         context = {}
         
@@ -103,7 +103,7 @@ class CostAnalyzer:
             baseline_key = f"material_cost_{material_code}"
             if baseline_key not in baselines_cache:
                 baselines_cache[baseline_key] = self.baseline_tracker.get_baseline(
-                    facility_id, 'material_cost', material_code
+                    org_id, 'material_cost', material_code
                 )
             
             baseline = baselines_cache[baseline_key]
@@ -113,7 +113,7 @@ class CostAnalyzer:
                 
                 deviation = self.trend_detector.calculate_deviation(current_cost, baseline_avg)
                 trend_info = self.trend_detector.detect_trend_start(
-                    facility_id, 'material_cost', material_code,
+                    org_id, 'material_cost', material_code,
                     current_cost, baseline_avg, baseline.get('rolling_std', 0)
                 )
                 
@@ -134,7 +134,7 @@ class CostAnalyzer:
         baseline_key = f"labor_hours_{operation_type}"
         if baseline_key not in baselines_cache:
             baselines_cache[baseline_key] = self.baseline_tracker.get_baseline(
-                facility_id, 'labor_hours', operation_type
+                org_id, 'labor_hours', operation_type
             )
         
         baseline = baselines_cache[baseline_key]
@@ -144,7 +144,7 @@ class CostAnalyzer:
             
             deviation = self.trend_detector.calculate_deviation(current_hours, baseline_avg)
             trend_info = self.trend_detector.detect_trend_start(
-                facility_id, 'labor_hours', operation_type,
+                org_id, 'labor_hours', operation_type,
                 current_hours, baseline_avg, baseline.get('rolling_std', 0)
             )
             
@@ -162,7 +162,7 @@ class CostAnalyzer:
         
         return context
     
-    def predict_cost_variance(self, facility_id: int = 1, batch_id: Optional[str] = None, config: dict = None) -> Dict:
+    def predict_cost_variance(self, org_id: int = 1, batch_id: Optional[str] = None, config: dict = None) -> Dict:
         """Analyze cost variances with rich pattern narratives and baseline comparisons"""
         
         if config is None:
@@ -175,14 +175,14 @@ class CostAnalyzer:
         excluded_suppliers = config.get('excluded_suppliers', [])
         excluded_materials = config.get('excluded_materials', [])
         
-        query = self.supabase.table("work_orders").select("*").eq("facility_id", facility_id)
+        query = self.supabase.table("work_orders").select("*").eq("org_id", org_id)
         
         if batch_id:
             query = query.eq("uploaded_csv_batch", batch_id)
         else:
             recent_batch = self.supabase.table("work_orders")\
                 .select("uploaded_csv_batch")\
-                .eq("facility_id", facility_id)\
+                .eq("org_id", org_id)\
                 .order("uploaded_csv_batch")\
                 .execute()
             
@@ -287,14 +287,14 @@ class CostAnalyzer:
                 )
                 
                 # Add baseline context
-                baseline = self.baseline_tracker.get_baseline(facility_id, 'material_cost', row["material_code"])
+                baseline = self.baseline_tracker.get_baseline(org_id, 'material_cost', row["material_code"])
                 baseline_context = None
                 if baseline:
                     current_avg = row["avg_cost"]
                     baseline_avg = baseline['rolling_avg']
                     deviation = self.trend_detector.calculate_deviation(current_avg, baseline_avg)
                     trend_info = self.trend_detector.detect_trend_start(
-                        facility_id, 'material_cost', row["material_code"],
+                        org_id, 'material_cost', row["material_code"],
                         current_avg, baseline_avg, baseline.get('rolling_std', 0)
                     )
                     baseline_context = {
@@ -310,14 +310,14 @@ class CostAnalyzer:
                 
                 # Add cost trend analysis (30-day window)
                 cost_trend = self.degradation_detector.detect_cost_trend(
-                    facility_id, row["material_code"], window_days=30
+                    org_id, row["material_code"], window_days=30
                 )
                 
                 # Add correlation analysis if cost is trending
                 correlations = []
                 if cost_trend:
                     correlations = self.correlation_analyzer.find_cost_correlations(
-                        facility_id, row["material_code"],
+                        org_id, row["material_code"],
                         inflection_date=cost_trend.get('inflection_date'),
                         window_days=30
                     )
@@ -395,7 +395,7 @@ class CostAnalyzer:
                          "medium"
             
             variance_context = self._calculate_variance_context(row, df)
-            baseline_context = self._add_baseline_context(row, facility_id, baselines_cache)
+            baseline_context = self._add_baseline_context(row, org_id, baselines_cache)
             
             predictions.append({
                 "work_order_number": row["work_order_number"],
